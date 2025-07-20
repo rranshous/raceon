@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaceOn - Rock 'n' Roll Racing Inspired</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #333;
+            background: #222;
+        }
+        
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .control-info {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏎️ RaceOn</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div id="controls">
+        <div class="control-info"><strong>Controls:</strong></div>
+        <div class="control-info">Arrow Keys - Steer and Accelerate/Brake</div>
+        <div class="control-info">Space - Brake/Reverse</div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
