@@ -168,7 +168,7 @@ export class WaterBandit {
     
     // Check if bandit has escaped (reached edge of world)
     hasEscaped(worldWidth: number, worldHeight: number): boolean {
-        const margin = 50;
+        const margin = 150; // Much larger escape zone - they escape while still visible
         return this.position.x < margin || 
                this.position.x > worldWidth - margin ||
                this.position.y < margin || 
@@ -216,12 +216,20 @@ export class WaterBandit {
         }
     }
     
-    // Keep bandit within world bounds
+    // Keep bandit within world bounds (but allow escape at edges)
     clampToWorldBounds(worldWidth: number, worldHeight: number): void {
-        this.position = new Vector2D(
-            Math.max(50, Math.min(worldWidth - 50, this.position.x)),
-            Math.max(50, Math.min(worldHeight - 50, this.position.y))
-        );
+        // Bandits should be free to escape! Only prevent them from going too far off-screen
+        // during normal gameplay (not when escaping)
+        
+        // Only clamp if they're WAY off the map (like -500 pixels) to prevent memory issues
+        const extremeMargin = 200;
+        
+        if (this.position.x < -extremeMargin) this.position.x = -extremeMargin;
+        if (this.position.x > worldWidth + extremeMargin) this.position.x = worldWidth + extremeMargin;
+        if (this.position.y < -extremeMargin) this.position.y = -extremeMargin;
+        if (this.position.y > worldHeight + extremeMargin) this.position.y = worldHeight + extremeMargin;
+        
+        // That's it! Let them escape freely!
     }
     
     render(ctx: CanvasRenderingContext2D): void {
