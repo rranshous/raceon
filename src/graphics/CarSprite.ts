@@ -20,7 +20,7 @@ export class CarSprite {
 
     private setupFrames(): void {
         // Single row of 8 car directions
-        // From the image: appears to be facing different angles around the circle
+        // We'll just use frame 0 (the "up" facing sprite) and rotate it
         for (let col = 0; col < CarSprite.DIRECTIONS; col++) {
             this.frames.push({
                 x: col * CarSprite.SPRITE_SIZE,
@@ -31,45 +31,30 @@ export class CarSprite {
         }
     }
 
-    getFrameForAngle(angle: number): SpriteFrame {
-        // Normalize angle to 0-2π range
-        let normalizedAngle = angle;
-        while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
-        while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
-
-        // The sprite sheet starts with "up" (frame 0) and goes clockwise
-        // Frame 0: up (angle = -π/2 or 3π/2)
-        // Frame 1: up-right (angle = -π/4 or 7π/4)
-        // Frame 2: right (angle = 0)
-        // Frame 3: down-right (angle = π/4)
-        // Frame 4: down (angle = π/2)
-        // Frame 5: down-left (angle = 3π/4)
-        // Frame 6: left (angle = π)
-        // Frame 7: up-left (angle = 5π/4)
-        
-        // Adjust angle so that 0 corresponds to frame 0 (up)
-        // We need to rotate the angle system by 3π/2 (or -π/2)
-        let adjustedAngle = normalizedAngle + Math.PI / 2;
-        if (adjustedAngle >= Math.PI * 2) adjustedAngle -= Math.PI * 2;
-        
-        const angleStep = (Math.PI * 2) / CarSprite.DIRECTIONS;
-        let frameIndex = Math.floor(adjustedAngle / angleStep) % CarSprite.DIRECTIONS;
-        
-        return this.frames[frameIndex];
-    }
-
     render(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, scale: number = 1): void {
-        const frame = this.getFrameForAngle(angle);
+        // Always use frame 0 (the "up" facing sprite) and rotate it
+        const frame = this.frames[0];
         
         // Calculate scaled dimensions
         const scaledWidth = frame.width * scale;
         const scaledHeight = frame.height * scale;
         
-        // Draw the sprite centered at the given position
+        ctx.save();
+        
+        // Move to the car position
+        ctx.translate(x, y);
+        
+        // Rotate by the car's angle
+        // The sprite faces "up" so we need to add π/2 to align with our coordinate system
+        ctx.rotate(angle + Math.PI / 2);
+        
+        // Draw the sprite centered at the origin (which is now the car position)
         ctx.drawImage(
             this.image,
             frame.x, frame.y, frame.width, frame.height,  // Source rectangle
-            x - scaledWidth / 2, y - scaledHeight / 2, scaledWidth, scaledHeight  // Destination rectangle
+            -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight  // Destination rectangle
         );
+        
+        ctx.restore();
     }
 }
