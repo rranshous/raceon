@@ -23,14 +23,19 @@ export class DesertSprite {
         const scaledSize = DesertSprite.SPRITE_SIZE * scale;
         
         if (tile.tileType === 'sand') {
-            // Render sand background
-            ctx.fillStyle = '#f4d03f'; // Sandy color
-            ctx.fillRect(
-                tile.position.x - scaledSize / 2,
-                tile.position.y - scaledSize / 2,
-                scaledSize,
-                scaledSize
-            );
+            // Use the first desert sprite (blank sand) instead of yellow fill
+            if (this.desertDetailsImage) {
+                ctx.drawImage(
+                    this.desertDetailsImage,
+                    0, 0, // First sprite (blank sand) at position 0,0
+                    DesertSprite.SPRITE_SIZE,
+                    DesertSprite.SPRITE_SIZE,
+                    tile.position.x - scaledSize / 2,
+                    tile.position.y - scaledSize / 2,
+                    scaledSize + 1, // Add 1 pixel to eliminate gaps
+                    scaledSize + 1
+                );
+            }
         } else if (tile.tileType === 'detail' && this.desertDetailsImage && tile.spriteIndex !== undefined) {
             // Render desert detail sprite
             const spritesPerRow = 8; // Assuming 8 sprites per row

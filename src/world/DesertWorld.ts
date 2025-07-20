@@ -25,11 +25,11 @@ export class DesertWorld {
     }
 
     private generateDesertTerrain(): void {
-        const tileSize = 32; // Larger tiles for better performance
+        const tileSize = 32; // Tile size for rendering
         
-        // Create sand base layer
-        for (let x = 0; x < this.worldWidth; x += tileSize) {
-            for (let y = 0; y < this.worldHeight; y += tileSize) {
+        // Create sand base layer - ensure full coverage with overlapping tiles
+        for (let x = -tileSize; x < this.worldWidth + tileSize; x += tileSize) {
+            for (let y = -tileSize; y < this.worldHeight + tileSize; y += tileSize) {
                 this.desertTiles.push({
                     position: new Vector2D(x + tileSize/2, y + tileSize/2),
                     tileType: 'sand'
@@ -38,13 +38,14 @@ export class DesertWorld {
         }
         
         // Add scattered desert details (cacti, rocks, etc.)
-        const numDetails = 200; // Scattered across the desert
+        const numDetails = 150; // Slightly fewer for better balance
         for (let i = 0; i < numDetails; i++) {
             const x = Math.random() * this.worldWidth;
             const y = Math.random() * this.worldHeight;
             
-            // Random desert detail sprite (assuming first few are good ones)
-            const spriteIndex = Math.floor(Math.random() * 8); // First row of sprites
+            // Use desert detail sprites (skip first 2 which are sand variations)
+            // Start from index 2 to avoid the sand sprites
+            const spriteIndex = 2 + Math.floor(Math.random() * 6); // Use sprites 2-7
             
             this.desertTiles.push({
                 position: new Vector2D(x, y),
@@ -89,26 +90,42 @@ export class DesertWorld {
     render(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number, canvasWidth: number, canvasHeight: number): void {
         if (!this.desertSprite) return;
         
-        // Only render tiles that are visible on screen
-        const margin = 50; // Render a bit outside screen for smooth scrolling
+        // Render in layers: sand first, then details, then water
+        const margin = 100; // Larger margin for smoother scrolling
         
+        // Layer 1: Render all sand tiles first (base layer)
         for (const tile of this.desertTiles) {
-            // Check if tile is within camera view
-            if (tile.position.x >= cameraX - margin &&
+            if (tile.tileType === 'sand' &&
+                tile.position.x >= cameraX - margin &&
                 tile.position.x <= cameraX + canvasWidth + margin &&
                 tile.position.y >= cameraY - margin &&
                 tile.position.y <= cameraY + canvasHeight + margin) {
                 
-                // Translate tile position relative to camera
-                const screenTile: DesertTile = {
-                    ...tile,
-                    position: new Vector2D(
-                        tile.position.x - cameraX,
-                        tile.position.y - cameraY
-                    )
-                };
+                this.desertSprite.renderDesertTile(ctx, tile, 2.0);
+            }
+        }
+        
+        // Layer 2: Render detail tiles (cacti, rocks, etc.)
+        for (const tile of this.desertTiles) {
+            if (tile.tileType === 'detail' &&
+                tile.position.x >= cameraX - margin &&
+                tile.position.x <= cameraX + canvasWidth + margin &&
+                tile.position.y >= cameraY - margin &&
+                tile.position.y <= cameraY + canvasHeight + margin) {
                 
-                this.desertSprite.renderDesertTile(ctx, screenTile, 2.0);
+                this.desertSprite.renderDesertTile(ctx, tile, 2.0);
+            }
+        }
+        
+        // Layer 3: Render water tiles (on top)
+        for (const tile of this.desertTiles) {
+            if (tile.tileType === 'water' &&
+                tile.position.x >= cameraX - margin &&
+                tile.position.x <= cameraX + canvasWidth + margin &&
+                tile.position.y >= cameraY - margin &&
+                tile.position.y <= cameraY + canvasHeight + margin) {
+                
+                this.desertSprite.renderDesertTile(ctx, tile, 2.0);
             }
         }
     }
