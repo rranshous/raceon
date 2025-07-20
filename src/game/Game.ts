@@ -6,6 +6,7 @@ import { CarSprite } from '../graphics/CarSprite';
 import { DesertSprite } from '../graphics/DesertSprite';
 import { Camera } from '../camera/Camera';
 import { BanditManager } from './BanditManager';
+import { DebugRenderer } from '../debug/DebugRenderer';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -16,6 +17,7 @@ export class Game {
     private camera: Camera;
     private assetManager: AssetManager;
     private banditManager: BanditManager;
+    private debugRenderer: DebugRenderer;
     
     private lastTime: number = 0;
     private isRunning: boolean = false;
@@ -41,6 +43,9 @@ export class Game {
             this.desertWorld.getWaterObstacles(),
             this.desertWorld
         );
+        
+        // Initialize debug renderer
+        this.debugRenderer = new DebugRenderer();
         
         // Start vehicle in the middle of the desert world
         this.vehicle = new Vehicle(this.desertWorld.worldWidth / 2, this.desertWorld.worldHeight / 2);
@@ -113,6 +118,14 @@ export class Game {
     };
 
     private update(deltaTime: number): void {
+        // Update input manager (for key press detection)
+        this.inputManager.update();
+        
+        // Handle debug toggle
+        if (this.inputManager.isDebugTogglePressed()) {
+            this.debugRenderer.toggle();
+        }
+        
         // Update vehicle
         this.vehicle.update(deltaTime, this.inputManager);
         
@@ -191,6 +204,18 @@ export class Game {
         // Render desert world
         this.desertWorld.render(this.ctx, this.camera.position.x, this.camera.position.y, this.canvas.width, this.canvas.height);
         
+        // Render debug overlays in world space (before restoring context)
+        this.debugRenderer.renderWorldDebug(
+            this.ctx,
+            this.banditManager.getActiveBandits(),
+            this.desertWorld.getWaterObstacles(),
+            this.vehicle,
+            this.camera.position.x,
+            this.camera.position.y,
+            this.canvas.width,
+            this.canvas.height
+        );
+        
         // Render bandits
         this.banditManager.render(this.ctx);
         
@@ -202,6 +227,9 @@ export class Game {
         
         // Render UI elements (debug info, etc.) - these stay on screen
         this.renderDebugInfo();
+        
+        // Render debug UI overlays (not affected by camera)
+        this.debugRenderer.renderUIDebug(this.ctx, this.banditManager.getActiveBandits(), this.vehicle);
     }
 
     private renderDebugInfo(): void {

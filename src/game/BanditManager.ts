@@ -144,6 +144,11 @@ export class BanditManager {
         return this.bandits.filter(bandit => bandit.isAlive);
     }
     
+    // Get all bandits for debug purposes
+    getAllBandits(): WaterBandit[] {
+        return this.bandits;
+    }
+    
     // Render all bandits
     render(ctx: CanvasRenderingContext2D): void {
         for (const bandit of this.bandits) {

@@ -84,12 +84,12 @@ export class WaterBandit {
         const distanceToTarget = directionToTarget.length();
         
         if (distanceToTarget > 10) {
-            // Add some wandering behavior for more natural movement
-            this.wanderAngle += (Math.random() - 0.5) * 2 * deltaTime; // Gentle wandering
+            // Add some wandering behavior for more natural movement (reduced swerving)
+            this.wanderAngle += (Math.random() - 0.5) * 0.8 * deltaTime; // Reduced from 2 to 0.8
             
             // Calculate desired angle (target direction + wander)
             const targetAngle = Math.atan2(directionToTarget.y, directionToTarget.x);
-            const wanderInfluence = 0.3; // How much wandering affects direction
+            const wanderInfluence = 0.15; // Reduced from 0.3 to 0.15 - less swerving
             const desiredAngle = targetAngle + this.wanderAngle * wanderInfluence;
             
             // Smoothly turn toward desired angle
@@ -226,5 +226,18 @@ export class WaterBandit {
             ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
             ctx.restore();
         }
+    }
+    
+    // Debug info getters for godly mode
+    getDebugInfo() {
+        return {
+            position: this.position,
+            escapeTarget: this.escapeTarget,
+            avoidanceTarget: this.avoidanceTarget,
+            stuckTimer: this.stuckTimer,
+            speed: this.speed,
+            state: this.state,
+            isStuck: this.stuckTimer > 0.5
+        };
     }
 }
