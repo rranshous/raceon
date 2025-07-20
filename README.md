@@ -55,6 +55,14 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - **Proper escapes**: Bandits must reach actual map edges, not escape prematurely
 - **Clean HUD**: Streamlined interface showing only essential bandit count
 
+### Phase 9: Immersion & Polish ✨
+**Key Commits**: [Add immersive effects system](https://github.com/rranshous/raceon/commit/latest) & [Polish visual feedback](https://github.com/rranshous/raceon/commit/latest)
+- **Screen shake system**: Satisfying camera shake on bandit destruction and water collisions
+- **Particle effects**: Destruction debris, water splashes, and realistic dust trails behind vehicles
+- **Tire track system**: Visual tracking for both player and bandits with natural fade-out
+- **Optimized effects**: Faster track lifecycle eliminates jarring disappearances
+- **Cinematic chases**: Both player and bandits leave dust trails for epic pursuit sequences
+
 ## 🎯 What We've Built
 
 - **Smooth vehicle physics** with realistic driving feel
@@ -67,6 +75,9 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - **Smart obstacle avoidance** - bandits navigate around water holes strategically
 - **Visual debug tools** - godly mode overlay for development and analysis
 - **Realistic AI physics** - bandits follow same rules as player (no cheating!)
+- **Immersive effects system** - screen shake, particles, dust trails, and tire tracks
+- **Visual bandit tracking** - follow tire tracks to hunt down escaping water thieves
+- **Cinematic feedback** - every collision and action has satisfying visual impact
 - **Modular architecture** ready for expansion
 
 ## 🛠️ Development Tools
