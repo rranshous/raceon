@@ -104,13 +104,19 @@ export class Vehicle {
             const terrainEffect = world.getTerrainEffect(this.position);
             if (terrainEffect < 1.0) {
                 // Apply additional friction based on terrain type (balanced effect)
-                const additionalFriction = (1.0 - terrainEffect) * 700; // Reduced from 800 to 700
+                const additionalFriction = (1.0 - terrainEffect) * 700;
                 
-                // Apply terrain friction
+                // Apply terrain friction with a minimum speed floor
                 if (this.speed > 0) {
-                    this.speed = Math.max(0, this.speed - additionalFriction * deltaTime);
+                    const newSpeed = this.speed - additionalFriction * deltaTime;
+                    // Set minimum speed floor - always maintain at least 20% of max speed when accelerating
+                    const minSpeed = this.maxSpeed * 0.2; // 40 speed units minimum
+                    this.speed = Math.max(minSpeed, newSpeed);
                 } else if (this.speed < 0) {
-                    this.speed = Math.min(0, this.speed + additionalFriction * deltaTime);
+                    const newSpeed = this.speed + additionalFriction * deltaTime;
+                    // Same floor for reverse
+                    const minReverseSpeed = -this.maxSpeed * 0.1; // 20 speed units minimum reverse
+                    this.speed = Math.min(minReverseSpeed, newSpeed);
                 }
                 
                 // Debug output to see what's happening (less spammy)
