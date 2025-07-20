@@ -7,6 +7,9 @@ import { DesertSprite } from '../graphics/DesertSprite';
 import { Camera } from '../camera/Camera';
 import { BanditManager } from './BanditManager';
 import { DebugRenderer } from '../debug/DebugRenderer';
+import { ScreenShake } from '../effects/ScreenShake';
+import { ParticleSystem } from '../effects/ParticleSystem';
+import { TireTrackSystem } from '../effects/TireTrackSystem';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -18,6 +21,9 @@ export class Game {
     private assetManager: AssetManager;
     private banditManager: BanditManager;
     private debugRenderer: DebugRenderer;
+    private screenShake: ScreenShake;
+    private particleSystem: ParticleSystem;
+    private tireTrackSystem: TireTrackSystem;
     
     private lastTime: number = 0;
     private isRunning: boolean = false;
@@ -46,6 +52,11 @@ export class Game {
         
         // Initialize debug renderer
         this.debugRenderer = new DebugRenderer();
+        
+        // Initialize effect systems
+        this.screenShake = new ScreenShake();
+        this.particleSystem = new ParticleSystem();
+        this.tireTrackSystem = new TireTrackSystem();
         
         // Start vehicle in the middle of the desert world
         this.vehicle = new Vehicle(this.desertWorld.worldWidth / 2, this.desertWorld.worldHeight / 2);
@@ -141,13 +152,30 @@ export class Game {
         // Check collision between player and bandits
         const collidedBandits = this.banditManager.checkPlayerCollisions(this.vehicle.position, vehicleRadius);
         for (const bandit of collidedBandits) {
+            // Create destruction effects!
+            this.particleSystem.createDestructionParticles(bandit.position, bandit.velocity);
+            this.screenShake.shake(15, 0.3); // Intense shake for bandit destruction
+            
             this.banditManager.destroyBandit(bandit);
         }
+        
+        // Add tire tracks for player
+        this.tireTrackSystem.addTracks('player', this.vehicle.position, this.vehicle.angle, this.vehicle.speed, 'player');
+        
+        // Add tire tracks for bandits
+        const activeBandits = this.banditManager.getActiveBandits();
+        activeBandits.forEach((bandit, index) => {
+            this.tireTrackSystem.addTracks(`bandit_${index}`, bandit.position, bandit.angle, bandit.speed, 'bandit');
+        });
         
         // Check collision with water obstacles
         const waterCollision = this.desertWorld.checkWaterCollision(this.vehicle.position, vehicleRadius);
         
         if (waterCollision) {
+            // Create water splash effect!
+            this.particleSystem.createWaterSplash(this.vehicle.position);
+            this.screenShake.shake(8, 0.2); // Moderate shake for water collision
+            
             // Calculate collision response vector
             const collisionVector = this.vehicle.position.subtract(waterCollision.position);
             const collisionDistance = collisionVector.length();
@@ -178,6 +206,16 @@ export class Game {
             }
         }
         
+        // Create driving dust particles when moving fast
+        if (this.vehicle.speed > 80) {
+            this.particleSystem.createDustParticles(this.vehicle.position, this.vehicle.velocity, 2);
+        }
+        
+        // Update effect systems
+        this.screenShake.update(deltaTime);
+        this.particleSystem.update(deltaTime);
+        this.tireTrackSystem.update(deltaTime);
+        
         // Keep vehicle within world bounds
         this.vehicle.position = this.desertWorld.clampToWorldBounds(this.vehicle.position);
     }
@@ -198,11 +236,15 @@ export class Game {
         // Save context for camera transform
         this.ctx.save();
         
-        // Apply camera transform
-        this.ctx.translate(-this.camera.position.x, -this.camera.position.y);
+        // Apply camera transform with screen shake
+        const shakeOffset = this.screenShake.getOffset();
+        this.ctx.translate(-this.camera.position.x + shakeOffset.x, -this.camera.position.y + shakeOffset.y);
         
         // Render desert world
         this.desertWorld.render(this.ctx, this.camera.position.x, this.camera.position.y, this.canvas.width, this.canvas.height);
+        
+        // Render tire tracks (under vehicles)
+        this.tireTrackSystem.render(this.ctx, this.camera.position.x, this.camera.position.y, this.canvas.width, this.canvas.height);
         
         // Render debug overlays in world space (before restoring context)
         this.debugRenderer.renderWorldDebug(
@@ -221,6 +263,9 @@ export class Game {
         
         // Render vehicle
         this.vehicle.render(this.ctx);
+        
+        // Render particles (on top of everything)
+        this.particleSystem.render(this.ctx);
         
         // Restore context
         this.ctx.restore();
