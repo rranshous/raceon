@@ -41,6 +41,20 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - **Smart spawning**: Bandits appear every 8 seconds near different water holes
 - **Collision detection**: Satisfying bandit destruction on impact
 
+### Phase 7: Bandit Physics & Intelligence 🧠
+**Key Commits**: [Improve bandit AI with realistic physics](https://github.com/rranshous/raceon/commit/latest)
+- **Realistic physics**: Bandits follow same collision rules as player (no more cheating!)
+- **Natural movement**: Wandering behavior with speed/turn variations for personality
+- **Stuck detection**: Smart avoidance when bandits get trapped by obstacles
+- **Water collision**: Bandits bounce off water holes realistically
+
+### Phase 8: Debug Tools & Refinement 🛠️
+**Key Commits**: [Add godly debug mode](https://github.com/rranshous/raceon/commit/latest) & [Refine bandit behavior](https://github.com/rranshous/raceon/commit/latest)
+- **Godly debug mode**: Press 'D' for visual AI overlay (escape routes, collision boundaries, stuck detection)
+- **Smart avoidance**: Strategic obstacle navigation prevents ping-ponging between water holes
+- **Proper escapes**: Bandits must reach actual map edges, not escape prematurely
+- **Clean HUD**: Streamlined interface showing only essential bandit count
+
 ## 🎯 What We've Built
 
 - **Smooth vehicle physics** with realistic driving feel
@@ -48,9 +62,21 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - **Open desert world** with procedural terrain generation
 - **Water obstacle collision** with bounce physics
 - **Camera system** for world exploration
-- **Water bandit AI** - blue cars stealing from oases with escape behavior
+- **Water bandit AI** - blue cars stealing from oases with intelligent escape behavior
 - **Justice collision system** - ram bandits to stop water theft!
+- **Smart obstacle avoidance** - bandits navigate around water holes strategically
+- **Visual debug tools** - godly mode overlay for development and analysis
+- **Realistic AI physics** - bandits follow same rules as player (no cheating!)
 - **Modular architecture** ready for expansion
+
+## 🛠️ Development Tools
+
+**Godly Debug Mode** - Press 'D' to toggle comprehensive visual debugging:
+- **AI Visualization**: See bandit escape routes, avoidance paths, and decision-making
+- **Collision Boundaries**: Visual representation of water obstacles and collision radii
+- **State Indicators**: Color-coded bandit states (normal/avoiding/stuck)
+- **Performance Metrics**: Bandit counts, escape progress, and system stats
+- **World Overview**: Camera-independent overlay perfect for development and analysis
 
 ## ️ Tech Stack
 
