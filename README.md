@@ -63,12 +63,26 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - **Optimized effects**: Faster track lifecycle eliminates jarring disappearances
 - **Cinematic chases**: Both player and bandits leave dust trails for epic pursuit sequences
 
+### Phase 10: Rich Terrain Interaction System 🏜️
+**Key Commits**: [Enhanced terrain generation & collision system](https://github.com/rranshous/raceon/commit/latest)
+- **Immersive terrain variety**: Clumped textured sand patches, natural cactus groves, scattered rock formations
+- **Organic water oases**: Dense, realistic water holes with textured sand shorelines for depth
+- **Rock collision detection**: Solid obstacles with bounce physics - rocks act like additional barriers
+- **Friction-based terrain physics**: Realistic resistance instead of jarring speed changes
+- **Textured sand slowdown**: 50% resistance in wet/muddy areas around oases
+- **Cactus grove resistance**: 70% resistance in thorny terrain (spines slow you down!)
+- **Minimum speed floor**: Never get completely stuck - maintain 20% forward, 10% reverse speed
+- **Strategic navigation**: Terrain choice affects performance and route planning
+
 ## 🎯 What We've Built
 
 - **Smooth vehicle physics** with realistic driving feel
 - **Asset-based rendering** using pixel art sprite sheets  
 - **Open desert world** with procedural terrain generation
-- **Water obstacle collision** with bounce physics
+- **Rich terrain interaction** - textured sand, cactus groves, and rock obstacles affect vehicle movement
+- **Friction-based terrain physics** - realistic resistance through different ground types
+- **Rock collision detection** - solid obstacles with bounce physics
+- **Water obstacle collision** with bounce physics and organic shorelines
 - **Camera system** for world exploration
 - **Water bandit AI** - blue cars stealing from oases with intelligent escape behavior
 - **Justice collision system** - ram bandits to stop water theft!
@@ -78,6 +92,7 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - **Immersive effects system** - screen shake, particles, dust trails, and tire tracks
 - **Visual bandit tracking** - follow tire tracks to hunt down escaping water thieves
 - **Cinematic feedback** - every collision and action has satisfying visual impact
+- **Strategic terrain navigation** - route planning based on ground type resistance
 - **Modular architecture** ready for expansion
 
 ## 🛠️ Development Tools
