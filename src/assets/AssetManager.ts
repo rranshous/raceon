@@ -53,6 +53,8 @@ export class AssetManager {
             this.loadImage('car_blue', '/resources/assets/mini-pixel-pack-2/Cars/Player_blue (16 x 16).png'),
             this.loadImage('car_red', '/resources/assets/mini-pixel-pack-2/Cars/Player_red (16 x 16).png'),
             this.loadImage('car_green', '/resources/assets/mini-pixel-pack-2/Cars/Player_green (16 x 16).png'),
+            // Load props for boundaries - corrected filename
+            this.loadImage('misc_props', '/resources/assets/mini-pixel-pack-2/Props/Misc_props (16 x 16).png'),
         ]);
     }
 }

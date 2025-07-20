@@ -3,6 +3,8 @@ import { Track } from '../track/Track';
 import { InputManager } from '../input/InputManager';
 import { AssetManager } from '../assets/AssetManager';
 import { CarSprite } from '../graphics/CarSprite';
+import { BoundarySprite } from '../graphics/BoundarySprite';
+import { Vector2D } from '../utils/Vector2D';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -49,6 +51,13 @@ export class Game {
                 this.vehicle.setSprite(carSprite);
             }
             
+            // Set up boundary sprites (cones)
+            const miscPropsImage = this.assetManager.getImage('misc_props');
+            if (miscPropsImage) {
+                const boundarySprite = new BoundarySprite(miscPropsImage);
+                this.track.setBoundarySprite(boundarySprite);
+            }
+            
             this.assetsLoaded = true;
             console.log('Assets loaded successfully!');
         } catch (error) {
@@ -84,10 +93,26 @@ export class Game {
     };
 
     private update(deltaTime: number): void {
+        // Store previous position for collision resolution
+        const previousPosition = new Vector2D(this.vehicle.position.x, this.vehicle.position.y);
+        
         // Update vehicle
         this.vehicle.update(deltaTime, this.inputManager);
         
-        // Simple boundary checking - wrap around screen edges
+        // Check collision with boundary objects (cones)
+        const vehicleRadius = 12; // Approximate radius for collision detection
+        const collision = this.track.checkCollision(this.vehicle.position, vehicleRadius);
+        
+        if (collision) {
+            // Collision detected! Revert to previous position and stop the car
+            this.vehicle.position = previousPosition;
+            this.vehicle.speed *= 0.1; // Slow down significantly
+            
+            // Optional: Add some bounce-back effect
+            this.vehicle.velocity = this.vehicle.velocity.multiply(-0.2);
+        }
+        
+        // Simple boundary checking - wrap around screen edges (as backup)
         if (this.vehicle.position.x < 0) {
             this.vehicle.position.x = this.canvas.width;
         } else if (this.vehicle.position.x > this.canvas.width) {

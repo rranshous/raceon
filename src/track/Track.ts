@@ -1,4 +1,5 @@
 import { Vector2D } from '../utils/Vector2D';
+import { BoundaryObject, BoundarySprite } from '../graphics/BoundarySprite';
 
 export interface TrackPoint {
     position: Vector2D;
@@ -8,9 +9,16 @@ export interface TrackPoint {
 export class Track {
     private points: TrackPoint[] = [];
     private centerLine: Vector2D[] = [];
+    private boundaryObjects: BoundaryObject[] = [];
+    private boundarySprite: BoundarySprite | null = null;
     
     constructor() {
         this.generateSimpleOval();
+        this.generateBoundaryObjects();
+    }
+
+    setBoundarySprite(sprite: BoundarySprite): void {
+        this.boundarySprite = sprite;
     }
 
     private generateSimpleOval(): void {
@@ -32,6 +40,44 @@ export class Track {
                 position: new Vector2D(x, y),
                 width: trackWidth
             });
+        }
+    }
+
+    private generateBoundaryObjects(): void {
+        const centerX = 400;
+        const centerY = 300;
+        const radiusX = 300;
+        const radiusY = 200;
+        const trackWidth = 60;
+        
+        // Place cones around the outer boundary
+        const numCones = 32; // Fewer cones for better spacing
+        const coneIndex = 4; // The traffic cone is the 5th sprite (index 4)
+        
+        for (let i = 0; i < numCones; i++) {
+            const angle = (i / numCones) * Math.PI * 2;
+            
+            // Outer boundary cones
+            const outerX = centerX + Math.cos(angle) * (radiusX + trackWidth/2 + 20);
+            const outerY = centerY + Math.sin(angle) * (radiusY + trackWidth/2 + 20);
+            
+            this.boundaryObjects.push({
+                position: new Vector2D(outerX, outerY),
+                spriteIndex: coneIndex,
+                collisionRadius: 12
+            });
+            
+            // Inner boundary cones (every other position to avoid crowding)
+            if (i % 2 === 0) {
+                const innerX = centerX + Math.cos(angle) * (radiusX - trackWidth/2 - 20);
+                const innerY = centerY + Math.sin(angle) * (radiusY - trackWidth/2 - 20);
+                
+                this.boundaryObjects.push({
+                    position: new Vector2D(innerX, innerY),
+                    spriteIndex: coneIndex,
+                    collisionRadius: 12
+                });
+            }
         }
     }
 
@@ -95,6 +141,24 @@ export class Track {
         ctx.closePath();
         ctx.stroke();
         ctx.setLineDash([]); // Reset dash pattern
+
+        // Render boundary objects (cones)
+        if (this.boundarySprite) {
+            for (const obj of this.boundaryObjects) {
+                this.boundarySprite.renderBoundaryObject(ctx, obj, 1.0);
+            }
+        }
+    }
+
+    // Check collision with boundary objects
+    checkCollision(position: Vector2D, radius: number): BoundaryObject | null {
+        for (const obj of this.boundaryObjects) {
+            const distance = position.subtract(obj.position).length();
+            if (distance < radius + obj.collisionRadius) {
+                return obj;
+            }
+        }
+        return null;
     }
 
     // Helper method to find the closest track point to a given position
