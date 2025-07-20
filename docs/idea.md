@@ -1,4 +1,4 @@
-# Idea
+# Idea (Deprecated)
 
 I really loved the game rock and roll racing.
 
