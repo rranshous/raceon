@@ -139,7 +139,7 @@ export class Game {
         }
         
         // Update vehicle
-        this.vehicle.update(deltaTime, this.inputManager);
+        this.vehicle.update(deltaTime, this.inputManager, this.desertWorld);
         
         // Update camera to follow vehicle
         this.camera.update(this.vehicle);

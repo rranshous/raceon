@@ -1,6 +1,7 @@
 import { Vector2D } from '../utils/Vector2D';
 import { InputManager } from '../input/InputManager';
 import { CarSprite } from '../graphics/CarSprite';
+import { DesertWorld } from '../world/DesertWorld';
 
 export class Vehicle {
     public position: Vector2D;
@@ -29,12 +30,12 @@ export class Vehicle {
         this.sprite = sprite;
     }
 
-    update(deltaTime: number, input: InputManager): void {
-        this.handleInput(input, deltaTime);
-        this.updatePhysics(deltaTime);
+    update(deltaTime: number, input: InputManager, world?: DesertWorld): void {
+        this.handleInput(input, deltaTime, world);
+        this.updatePhysics(deltaTime, world);
     }
 
-    private handleInput(input: InputManager, deltaTime: number): void {
+    private handleInput(input: InputManager, deltaTime: number, world?: DesertWorld): void {
         // Steering (only when moving)
         if (Math.abs(this.speed) > 10) {
             if (input.isSteeringLeft()) {
@@ -63,12 +64,61 @@ export class Vehicle {
         this.speed = Math.max(-this.maxSpeed * 0.5, Math.min(this.maxSpeed, this.speed));
     }
 
-    private updatePhysics(deltaTime: number): void {
-        // Convert speed and angle to velocity vector
+    private updatePhysics(deltaTime: number, world?: DesertWorld): void {
+        // Convert speed and angle to velocity vector (no terrain speed reduction here)
         this.velocity = Vector2D.fromAngle(this.angle, this.speed);
         
-        // Update position
-        this.position = this.position.add(this.velocity.multiply(deltaTime));
+        // Calculate new position
+        const newPosition = this.position.add(this.velocity.multiply(deltaTime));
+        
+        // Check for rock and water collisions if world is provided
+        if (world) {
+            const vehicleRadius = Math.max(this.width, this.height) / 2;
+            
+            // Check rock collisions (solid obstacles)
+            const rockCollision = world.checkRockCollision(newPosition, vehicleRadius);
+            if (rockCollision) {
+                // Collision with rock - don't move, just bounce back slightly
+                const bounceDirection = this.position.subtract(rockCollision.position).normalize();
+                this.position = this.position.add(bounceDirection.multiply(2));
+                this.speed *= -0.3; // Small bounce back
+                return;
+            }
+            
+            // Check water collisions (solid obstacles)
+            const waterCollision = world.checkWaterCollision(newPosition, vehicleRadius);
+            if (waterCollision) {
+                // Collision with water - don't move, just bounce back slightly
+                const bounceDirection = this.position.subtract(waterCollision.position).normalize();
+                this.position = this.position.add(bounceDirection.multiply(2));
+                this.speed *= -0.3; // Small bounce back
+                return;
+            }
+        }
+        
+        // Update position if no collisions
+        this.position = newPosition;
+        
+        // Apply terrain friction effects AFTER movement
+        if (world) {
+            const terrainEffect = world.getTerrainEffect(this.position);
+            if (terrainEffect < 1.0) {
+                // Apply additional friction based on terrain type (balanced effect)
+                const additionalFriction = (1.0 - terrainEffect) * 700; // Reduced from 800 to 700
+                
+                // Apply terrain friction
+                if (this.speed > 0) {
+                    this.speed = Math.max(0, this.speed - additionalFriction * deltaTime);
+                } else if (this.speed < 0) {
+                    this.speed = Math.min(0, this.speed + additionalFriction * deltaTime);
+                }
+                
+                // Debug output to see what's happening (less spammy)
+                if (additionalFriction > 0 && Math.random() < 0.1) { // Only log 10% of the time
+                    console.log(`Terrain effect: ${terrainEffect.toFixed(2)}, Additional friction: ${additionalFriction.toFixed(0)}, Speed: ${this.speed.toFixed(1)}`);
+                }
+            }
+        }
     }
 
     render(ctx: CanvasRenderingContext2D): void {

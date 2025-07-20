@@ -6,9 +6,23 @@ export interface WaterObstacle {
     radius: number;
 }
 
+export interface RockObstacle {
+    position: Vector2D;
+    radius: number;
+}
+
+export interface TerrainEffect {
+    position: Vector2D;
+    radius: number;
+    type: 'textured_sand' | 'cactus';
+    slowdownFactor: number; // 0.0 = full stop, 1.0 = no slowdown
+}
+
 export class DesertWorld {
     private desertTiles: DesertTile[] = [];
     private waterObstacles: WaterObstacle[] = [];
+    private rockObstacles: RockObstacle[] = [];
+    private terrainEffects: TerrainEffect[] = [];
     private desertSprite: DesertSprite | null = null;
     
     // World dimensions - much larger than previous track
@@ -124,6 +138,14 @@ export class DesertWorld {
             const patchSize = 40 + Math.random() * 80; // Variable patch sizes
             const tilesInPatch = Math.floor(patchSize / 8);
             
+            // Add terrain effect for this patch
+            this.terrainEffects.push({
+                position: new Vector2D(centerX, centerY),
+                radius: patchSize / 2,
+                type: 'textured_sand',
+                slowdownFactor: 0.4 // 40% speed in textured sand (balanced friction)
+            });
+            
             for (let j = 0; j < tilesInPatch; j++) {
                 // Create organic patch shape using perturbed circular distribution
                 const angle = Math.random() * Math.PI * 2;
@@ -152,6 +174,14 @@ export class DesertWorld {
             const centerY = Math.random() * this.worldHeight;
             const groveSize = 30 + Math.random() * 50;
             const cactiInGrove = 3 + Math.floor(Math.random() * 8); // 3-10 cacti per grove
+            
+            // Add terrain effect for this grove (cactus spines slow you down!)
+            this.terrainEffects.push({
+                position: new Vector2D(centerX, centerY),
+                radius: groveSize / 2,
+                type: 'cactus',
+                slowdownFactor: 0.3 // 30% speed in cactus groves (strong resistance from spines)
+            });
             
             for (let j = 0; j < cactiInGrove; j++) {
                 // Cluster cacti around center with some spread
@@ -186,6 +216,12 @@ export class DesertWorld {
                     position: new Vector2D(x, y),
                     tileType: 'detail',
                     spriteIndex: 3 // Rock
+                });
+                
+                // Add rock collision obstacle
+                this.rockObstacles.push({
+                    position: new Vector2D(x, y),
+                    radius: 16 // 16 pixel collision radius for rocks
                 });
             }
         }
@@ -245,9 +281,40 @@ export class DesertWorld {
         return null;
     }
     
+    // Check collision with rock obstacles (solid collision like water)
+    checkRockCollision(position: Vector2D, radius: number): RockObstacle | null {
+        for (const obstacle of this.rockObstacles) {
+            const distance = position.subtract(obstacle.position).length();
+            if (distance < radius + obstacle.radius) {
+                return obstacle;
+            }
+        }
+        return null;
+    }
+    
+    // Check for terrain effects (slowdown zones)
+    getTerrainEffect(position: Vector2D): number {
+        let strongestSlowdown = 1.0; // Default: no slowdown
+        
+        for (const effect of this.terrainEffects) {
+            const distance = position.subtract(effect.position).length();
+            if (distance <= effect.radius) {
+                // Use the strongest (lowest) slowdown factor if multiple effects overlap
+                strongestSlowdown = Math.min(strongestSlowdown, effect.slowdownFactor);
+            }
+        }
+        
+        return strongestSlowdown;
+    }
+    
     // Get all water obstacles (for bandit spawning)
     getWaterObstacles(): WaterObstacle[] {
         return this.waterObstacles;
+    }
+
+    // Get all rock obstacles (for AI navigation)
+    getRockObstacles(): RockObstacle[] {
+        return this.rockObstacles;
     }
 
     // Keep player within world bounds
