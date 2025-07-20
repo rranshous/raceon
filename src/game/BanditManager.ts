@@ -47,8 +47,8 @@ export class BanditManager {
         for (const bandit of this.bandits) {
             bandit.update(deltaTime);
             
-            // Check water collisions for each bandit (same as player)
-            const banditRadius = Math.max(bandit.width, bandit.height) / 2;
+            // Check water collisions for each bandit - reduced sensitivity
+            const banditRadius = Math.max(bandit.width, bandit.height) / 3; // Reduced from /2 to /3
             const waterCollision = this.desertWorld.checkWaterCollision(bandit.position, banditRadius);
             if (waterCollision) {
                 bandit.handleWaterCollision(waterCollision, deltaTime);

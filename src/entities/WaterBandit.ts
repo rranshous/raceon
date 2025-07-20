@@ -22,6 +22,7 @@ export class WaterBandit {
     private stuckTimer: number = 0; // Detect when bandit is stuck
     private lastPosition: Vector2D;
     private avoidanceTarget: Vector2D | null = null; // Temporary avoidance target
+    private avoidanceStartTime: number = 0; // Track how long we've been avoiding
     
     // Dimensions
     public width: number = 20;
@@ -53,17 +54,20 @@ export class WaterBandit {
     private updateAI(deltaTime: number): void {
         if (this.state === 'destroyed') return;
         
-        // Check if we're stuck (haven't moved much)
+        // Check if we're genuinely stuck (very lenient detection)
         const distanceMoved = this.position.subtract(this.lastPosition).length();
-        if (distanceMoved < 5) {
+        const expectedMovement = this.speed * deltaTime; // How far we should have moved
+        
+        // Only consider stuck if we're trying to move but not getting anywhere
+        if (this.speed > 20 && distanceMoved < expectedMovement * 0.3) { // Less than 30% of expected movement
             this.stuckTimer += deltaTime;
         } else {
-            this.stuckTimer = 0;
+            this.stuckTimer = Math.max(0, this.stuckTimer - deltaTime * 3); // Quickly reduce when moving well
         }
         this.lastPosition = new Vector2D(this.position.x, this.position.y);
         
-        // If stuck for too long, add avoidance behavior
-        if (this.stuckTimer > 1.0) {
+        // If genuinely stuck for a long time, add avoidance behavior
+        if (this.stuckTimer > 3.0) { // Increased from 2.5 to 3.0 seconds
             this.createAvoidanceTarget();
             this.stuckTimer = 0;
         }
@@ -73,9 +77,13 @@ export class WaterBandit {
         if (this.avoidanceTarget) {
             currentTarget = this.avoidanceTarget;
             
-            // Clear avoidance target if we're close enough
-            if (this.position.subtract(this.avoidanceTarget).length() < 30) {
+            // Clear avoidance target if we're close enough or it's been too long
+            const distanceToAvoidance = this.position.subtract(this.avoidanceTarget).length();
+            const avoidanceAge = performance.now() - this.avoidanceStartTime;
+            
+            if (distanceToAvoidance < 50 || avoidanceAge > 8000) { // 8 seconds max avoidance
                 this.avoidanceTarget = null;
+                console.log('Bandit cleared avoidance target - reached destination or timeout');
             }
         }
         
@@ -119,14 +127,17 @@ export class WaterBandit {
     }
     
     private createAvoidanceTarget(): void {
-        // Create a temporary target to the side to get unstuck
-        const avoidanceDistance = 80;
-        const avoidanceAngle = this.angle + (Math.random() > 0.5 ? 1 : -1) * (Math.PI / 3 + Math.random() * Math.PI / 3);
+        // Create a temporary target to the side to get unstuck - make it much further
+        const avoidanceDistance = 120 + Math.random() * 80; // Increased from 80 to 120-200
+        const avoidanceAngle = this.angle + (Math.random() > 0.5 ? 1 : -1) * (Math.PI / 2 + Math.random() * Math.PI / 4); // Wider angle range
         
         this.avoidanceTarget = new Vector2D(
             this.position.x + Math.cos(avoidanceAngle) * avoidanceDistance,
             this.position.y + Math.sin(avoidanceAngle) * avoidanceDistance
         );
+        
+        this.avoidanceStartTime = performance.now(); // Track when avoidance started
+        console.log('Bandit created avoidance target - attempting to get unstuck');
     }
     
     private updatePhysics(deltaTime: number): void {
@@ -168,7 +179,7 @@ export class WaterBandit {
     handleWaterCollision(waterCollision: any, deltaTime: number): void {
         if (!waterCollision) return;
         
-        const banditRadius = Math.max(this.width, this.height) / 2;
+        const banditRadius = Math.max(this.width, this.height) / 3; // Smaller collision radius
         
         // Calculate collision response vector
         const collisionVector = this.position.subtract(waterCollision.position);
@@ -188,18 +199,20 @@ export class WaterBandit {
             
             // Reflect velocity along the collision normal (bounce effect)
             const reflectedVelocity = this.velocity.subtract(
-                collisionNormal.multiply(velocityDotNormal * 1.5)
+                collisionNormal.multiply(velocityDotNormal * 1.2) // Reduced from 1.5 to 1.2
             );
             
-            // Apply the bounced velocity with some damping
-            this.velocity = reflectedVelocity.multiply(0.6); // More damping for bandits
-            this.speed *= 0.6;
+            // Apply the bounced velocity with less damping (keep more momentum)
+            this.velocity = reflectedVelocity.multiply(0.8); // Increased from 0.6 to 0.8
+            this.speed *= 0.8; // Increased from 0.6 to 0.8
             
             // Update position based on new velocity to prevent sticking
             this.position = this.position.add(this.velocity.multiply(deltaTime));
             
-            // Create avoidance target to steer around water
-            this.createAvoidanceTarget();
+            // Only create avoidance target if we're really stuck AND don't have one already
+            if (!this.avoidanceTarget && this.stuckTimer > 1.0) { // Only if stuck for a while
+                this.createAvoidanceTarget();
+            }
         }
     }
     
@@ -237,7 +250,7 @@ export class WaterBandit {
             stuckTimer: this.stuckTimer,
             speed: this.speed,
             state: this.state,
-            isStuck: this.stuckTimer > 0.5
+            isStuck: this.stuckTimer > 1.5 // More lenient threshold for visual indicator
         };
     }
 }
