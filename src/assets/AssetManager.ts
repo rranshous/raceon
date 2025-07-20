@@ -53,7 +53,10 @@ export class AssetManager {
             this.loadImage('car_blue', '/resources/assets/mini-pixel-pack-2/Cars/Player_blue (16 x 16).png'),
             this.loadImage('car_red', '/resources/assets/mini-pixel-pack-2/Cars/Player_red (16 x 16).png'),
             this.loadImage('car_green', '/resources/assets/mini-pixel-pack-2/Cars/Player_green (16 x 16).png'),
-            // Load props for boundaries - corrected filename
+            // Load desert environment assets
+            this.loadImage('desert_details', '/resources/assets/mini-pixel-pack-2/Levels/Desert_details (16 x 16).png'),
+            this.loadImage('water_tiles', '/resources/assets/mini-pixel-pack-2/Levels/Highway_water_color (16 x 16).png'),
+            // Keep props for any other features we might add later
             this.loadImage('misc_props', '/resources/assets/mini-pixel-pack-2/Props/Misc_props (16 x 16).png'),
         ]);
     }

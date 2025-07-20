@@ -1,16 +1,18 @@
 import { Vehicle } from '../entities/Vehicle';
-import { Track } from '../track/Track';
+import { DesertWorld } from '../world/DesertWorld';
 import { InputManager } from '../input/InputManager';
 import { AssetManager } from '../assets/AssetManager';
 import { CarSprite } from '../graphics/CarSprite';
-import { BoundarySprite } from '../graphics/BoundarySprite';
+import { DesertSprite } from '../graphics/DesertSprite';
+import { Camera } from '../camera/Camera';
 
 export class Game {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private inputManager: InputManager;
     private vehicle: Vehicle;
-    private track: Track;
+    private desertWorld: DesertWorld;
+    private camera: Camera;
     private assetManager: AssetManager;
     
     private lastTime: number = 0;
@@ -26,14 +28,13 @@ export class Game {
         this.ctx = ctx;
         
         this.inputManager = new InputManager();
-        this.vehicle = new Vehicle(400, 300); // Start at center
-        this.track = new Track();
+        this.desertWorld = new DesertWorld();
+        this.camera = new Camera(canvas.width, canvas.height, this.desertWorld.worldWidth, this.desertWorld.worldHeight);
         this.assetManager = AssetManager.getInstance();
         
-        // Set initial vehicle position to be on the track
-        this.vehicle.position.x = 400 + 300; // Start on the right side of the oval
-        this.vehicle.position.y = 300;
-        this.vehicle.angle = Math.PI / 2; // Facing down initially
+        // Start vehicle in the middle of the desert world
+        this.vehicle = new Vehicle(this.desertWorld.worldWidth / 2, this.desertWorld.worldHeight / 2);
+        this.vehicle.angle = 0; // Facing right initially
         
         // Load assets
         this.loadAssets();
@@ -50,11 +51,14 @@ export class Game {
                 this.vehicle.setSprite(carSprite);
             }
             
-            // Set up boundary sprites (cones)
-            const miscPropsImage = this.assetManager.getImage('misc_props');
-            if (miscPropsImage) {
-                const boundarySprite = new BoundarySprite(miscPropsImage);
-                this.track.setBoundarySprite(boundarySprite);
+            // Set up desert world sprites
+            const desertDetailsImage = this.assetManager.getImage('desert_details');
+            const waterTilesImage = this.assetManager.getImage('water_tiles');
+            if (desertDetailsImage && waterTilesImage) {
+                const desertSprite = new DesertSprite();
+                desertSprite.setDesertDetailsImage(desertDetailsImage);
+                desertSprite.setWaterImage(waterTilesImage);
+                this.desertWorld.setDesertSprite(desertSprite);
             }
             
             this.assetsLoaded = true;
@@ -95,21 +99,24 @@ export class Game {
         // Update vehicle
         this.vehicle.update(deltaTime, this.inputManager);
         
-        // Check collision with boundary objects (cones)
-        const vehicleRadius = 12; // Approximate radius for collision detection
-        const collision = this.track.checkCollision(this.vehicle.position, vehicleRadius);
+        // Update camera to follow vehicle
+        this.camera.update(this.vehicle);
         
-        if (collision) {
+        // Check collision with water obstacles
+        const vehicleRadius = 12; // Approximate radius for collision detection
+        const waterCollision = this.desertWorld.checkWaterCollision(this.vehicle.position, vehicleRadius);
+        
+        if (waterCollision) {
             // Calculate collision response vector
-            const collisionVector = this.vehicle.position.subtract(collision.position);
+            const collisionVector = this.vehicle.position.subtract(waterCollision.position);
             const collisionDistance = collisionVector.length();
             
             if (collisionDistance > 0) {
                 // Normalize the collision vector
                 const collisionNormal = collisionVector.normalize();
                 
-                // Push the car away from the cone
-                const overlap = vehicleRadius + collision.collisionRadius - collisionDistance;
+                // Push the car away from the water
+                const overlap = vehicleRadius + waterCollision.radius - collisionDistance;
                 this.vehicle.position = this.vehicle.position.add(collisionNormal.multiply(overlap + 2));
                 
                 // Calculate bounce/skid effect
@@ -122,26 +129,16 @@ export class Game {
                 );
                 
                 // Apply the bounced velocity with some damping
-                this.vehicle.velocity = reflectedVelocity.multiply(0.6); // Reduce speed but maintain direction
-                this.vehicle.speed *= 0.6; // Also reduce the speed value
+                this.vehicle.velocity = reflectedVelocity.multiply(0.7); // Slightly less damping for water
+                this.vehicle.speed *= 0.7;
                 
                 // Update position based on new velocity to prevent sticking
                 this.vehicle.position = this.vehicle.position.add(this.vehicle.velocity.multiply(deltaTime));
             }
         }
         
-        // Simple boundary checking - wrap around screen edges (as backup)
-        if (this.vehicle.position.x < 0) {
-            this.vehicle.position.x = this.canvas.width;
-        } else if (this.vehicle.position.x > this.canvas.width) {
-            this.vehicle.position.x = 0;
-        }
-        
-        if (this.vehicle.position.y < 0) {
-            this.vehicle.position.y = this.canvas.height;
-        } else if (this.vehicle.position.y > this.canvas.height) {
-            this.vehicle.position.y = 0;
-        }
+        // Keep vehicle within world bounds
+        this.vehicle.position = this.desertWorld.clampToWorldBounds(this.vehicle.position);
     }
 
     private render(): void {
@@ -157,13 +154,22 @@ export class Game {
             return;
         }
         
-        // Render track
-        this.track.render(this.ctx);
+        // Save context for camera transform
+        this.ctx.save();
+        
+        // Apply camera transform
+        this.ctx.translate(-this.camera.position.x, -this.camera.position.y);
+        
+        // Render desert world
+        this.desertWorld.render(this.ctx, this.camera.position.x, this.camera.position.y, this.canvas.width, this.canvas.height);
         
         // Render vehicle
         this.vehicle.render(this.ctx);
         
-        // Render debug info
+        // Restore context
+        this.ctx.restore();
+        
+        // Render UI elements (debug info, etc.) - these stay on screen
         this.renderDebugInfo();
     }
 
