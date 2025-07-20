@@ -4,7 +4,7 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 
 ## 🎮 Current State
 
-**Desert Bandit Mode**: Open-world exploration across a vast desert landscape with water obstacles, scattered details, and smooth physics-based driving.
+**Desert Justice Mode**: Open-world desert with **water bandits** stealing from precious oases! Ram the blue bandits before they escape with the water. Righteous justice in the wasteland! 💧⚖️
 
 ## 🚗 Development Journey
 
@@ -34,6 +34,13 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - Used actual sand sprites, eliminated tile gaps
 - Added layered rendering for seamless desert appearance
 
+### Phase 6: Water Bandits! 🚗💧
+**Key Commit**: [Add water bandits! Blue cars stealing from oases](https://github.com/rranshous/raceon/commit/latest)
+- **Water bandit AI**: Blue cars spawn near oases and try to escape to map edges
+- **Justice system**: Ram bandits to destroy them and stop the theft!
+- **Smart spawning**: Bandits appear every 8 seconds near different water holes
+- **Collision detection**: Satisfying bandit destruction on impact
+
 ## 🎯 What We've Built
 
 - **Smooth vehicle physics** with realistic driving feel
@@ -41,6 +48,8 @@ A browser-based combat racing game inspired by Rock 'n Roll Racing, built with T
 - **Open desert world** with procedural terrain generation
 - **Water obstacle collision** with bounce physics
 - **Camera system** for world exploration
+- **Water bandit AI** - blue cars stealing from oases with escape behavior
+- **Justice collision system** - ram bandits to stop water theft!
 - **Modular architecture** ready for expansion
 
 ## ️ Tech Stack
