@@ -50,8 +50,8 @@ export class Track {
         const radiusY = 200;
         const trackWidth = 60;
         
-        // Place cones around the outer boundary
-        const numCones = 32; // Fewer cones for better spacing
+        // Place cones around the outer boundary - increased density
+        const numCones = 64; // More cones for denser wall-like appearance
         const coneIndex = 4; // The traffic cone is the 5th sprite (index 4)
         
         for (let i = 0; i < numCones; i++) {
@@ -64,18 +64,18 @@ export class Track {
             this.boundaryObjects.push({
                 position: new Vector2D(outerX, outerY),
                 spriteIndex: coneIndex,
-                collisionRadius: 12
+                collisionRadius: 10 // Slightly smaller radius for denser packing
             });
             
-            // Inner boundary cones (every other position to avoid crowding)
-            if (i % 2 === 0) {
+            // Inner boundary cones - now place more frequently
+            if (i % 1 === 0) { // Every cone position instead of every other
                 const innerX = centerX + Math.cos(angle) * (radiusX - trackWidth/2 - 20);
                 const innerY = centerY + Math.sin(angle) * (radiusY - trackWidth/2 - 20);
                 
                 this.boundaryObjects.push({
                     position: new Vector2D(innerX, innerY),
                     spriteIndex: coneIndex,
-                    collisionRadius: 12
+                    collisionRadius: 10
                 });
             }
         }

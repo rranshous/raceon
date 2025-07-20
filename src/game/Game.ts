@@ -4,7 +4,6 @@ import { InputManager } from '../input/InputManager';
 import { AssetManager } from '../assets/AssetManager';
 import { CarSprite } from '../graphics/CarSprite';
 import { BoundarySprite } from '../graphics/BoundarySprite';
-import { Vector2D } from '../utils/Vector2D';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -93,9 +92,6 @@ export class Game {
     };
 
     private update(deltaTime: number): void {
-        // Store previous position for collision resolution
-        const previousPosition = new Vector2D(this.vehicle.position.x, this.vehicle.position.y);
-        
         // Update vehicle
         this.vehicle.update(deltaTime, this.inputManager);
         
@@ -104,12 +100,34 @@ export class Game {
         const collision = this.track.checkCollision(this.vehicle.position, vehicleRadius);
         
         if (collision) {
-            // Collision detected! Revert to previous position and stop the car
-            this.vehicle.position = previousPosition;
-            this.vehicle.speed *= 0.1; // Slow down significantly
+            // Calculate collision response vector
+            const collisionVector = this.vehicle.position.subtract(collision.position);
+            const collisionDistance = collisionVector.length();
             
-            // Optional: Add some bounce-back effect
-            this.vehicle.velocity = this.vehicle.velocity.multiply(-0.2);
+            if (collisionDistance > 0) {
+                // Normalize the collision vector
+                const collisionNormal = collisionVector.normalize();
+                
+                // Push the car away from the cone
+                const overlap = vehicleRadius + collision.collisionRadius - collisionDistance;
+                this.vehicle.position = this.vehicle.position.add(collisionNormal.multiply(overlap + 2));
+                
+                // Calculate bounce/skid effect
+                const velocityDotNormal = this.vehicle.velocity.x * collisionNormal.x + 
+                                        this.vehicle.velocity.y * collisionNormal.y;
+                
+                // Reflect velocity along the collision normal (bounce effect)
+                const reflectedVelocity = this.vehicle.velocity.subtract(
+                    collisionNormal.multiply(velocityDotNormal * 1.5)
+                );
+                
+                // Apply the bounced velocity with some damping
+                this.vehicle.velocity = reflectedVelocity.multiply(0.6); // Reduce speed but maintain direction
+                this.vehicle.speed *= 0.6; // Also reduce the speed value
+                
+                // Update position based on new velocity to prevent sticking
+                this.vehicle.position = this.vehicle.position.add(this.vehicle.velocity.multiply(deltaTime));
+            }
         }
         
         // Simple boundary checking - wrap around screen edges (as backup)
