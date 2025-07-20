@@ -10,6 +10,7 @@ import { DebugRenderer } from '../debug/DebugRenderer';
 import { ScreenShake } from '../effects/ScreenShake';
 import { ParticleSystem } from '../effects/ParticleSystem';
 import { TireTrackSystem } from '../effects/TireTrackSystem';
+import { Vector2D } from '../utils/Vector2D';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -162,10 +163,17 @@ export class Game {
         // Add tire tracks for player
         this.tireTrackSystem.addTracks('player', this.vehicle.position, this.vehicle.angle, this.vehicle.speed, 'player');
         
-        // Add tire tracks for bandits
+        // Add tire tracks for bandits and dust effects
         const activeBandits = this.banditManager.getActiveBandits();
         activeBandits.forEach((bandit, index) => {
             this.tireTrackSystem.addTracks(`bandit_${index}`, bandit.position, bandit.angle, bandit.speed, 'bandit');
+            
+            // Add dust trails for bandits when moving fast
+            if (bandit.speed > 70) {
+                const backOffset = new Vector2D(-Math.cos(bandit.angle), -Math.sin(bandit.angle)).multiply(12);
+                const dustPosition = bandit.position.add(backOffset);
+                this.particleSystem.createDustParticles(dustPosition, bandit.velocity, 1);
+            }
         });
         
         // Check collision with water obstacles
@@ -206,9 +214,12 @@ export class Game {
             }
         }
         
-        // Create driving dust particles when moving fast
+        // Create driving dust particles when moving fast (behind the vehicle)
         if (this.vehicle.speed > 80) {
-            this.particleSystem.createDustParticles(this.vehicle.position, this.vehicle.velocity, 2);
+            // Calculate position behind the vehicle
+            const backOffset = new Vector2D(-Math.cos(this.vehicle.angle), -Math.sin(this.vehicle.angle)).multiply(15);
+            const dustPosition = this.vehicle.position.add(backOffset);
+            this.particleSystem.createDustParticles(dustPosition, this.vehicle.velocity, 2);
         }
         
         // Update effect systems

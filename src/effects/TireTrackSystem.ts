@@ -60,8 +60,8 @@ export class TireTrackSystem {
         }
         
         // Track life based on speed (faster = more visible tracks)
-        const baseLife = 8.0; // 8 seconds base
-        const speedMultiplier = Math.min(speed / 100, 2.0); // Up to 2x life for high speed
+        const baseLife = 4.0; // Reduced from 8.0 to 4.0 seconds
+        const speedMultiplier = Math.min(speed / 100, 1.5); // Reduced from 2.0 to 1.5 max multiplier
         const life = baseLife * speedMultiplier;
         
         this.tracks.push({
@@ -100,6 +100,7 @@ export class TireTrackSystem {
                 continue;
             }
             
+            // Simple time-based fade - just alpha reduction
             const alpha = track.life / track.maxLife;
             const trackLength = 6;
             
