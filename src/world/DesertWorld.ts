@@ -140,6 +140,11 @@ export class DesertWorld {
         }
         return null;
     }
+    
+    // Get all water obstacles (for bandit spawning)
+    getWaterObstacles(): WaterObstacle[] {
+        return this.waterObstacles;
+    }
 
     // Keep player within world bounds
     clampToWorldBounds(position: Vector2D): Vector2D {

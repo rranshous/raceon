@@ -5,6 +5,7 @@ import { AssetManager } from '../assets/AssetManager';
 import { CarSprite } from '../graphics/CarSprite';
 import { DesertSprite } from '../graphics/DesertSprite';
 import { Camera } from '../camera/Camera';
+import { BanditManager } from './BanditManager';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -14,6 +15,7 @@ export class Game {
     private desertWorld: DesertWorld;
     private camera: Camera;
     private assetManager: AssetManager;
+    private banditManager: BanditManager;
     
     private lastTime: number = 0;
     private isRunning: boolean = false;
@@ -32,6 +34,13 @@ export class Game {
         this.camera = new Camera(canvas.width, canvas.height, this.desertWorld.worldWidth, this.desertWorld.worldHeight);
         this.assetManager = AssetManager.getInstance();
         
+        // Initialize bandit manager with world info
+        this.banditManager = new BanditManager(
+            this.desertWorld.worldWidth, 
+            this.desertWorld.worldHeight, 
+            this.desertWorld.getWaterObstacles()
+        );
+        
         // Start vehicle in the middle of the desert world
         this.vehicle = new Vehicle(this.desertWorld.worldWidth / 2, this.desertWorld.worldHeight / 2);
         this.vehicle.angle = 0; // Facing right initially
@@ -49,6 +58,13 @@ export class Game {
             if (yellowCarImage) {
                 const carSprite = new CarSprite(yellowCarImage);
                 this.vehicle.setSprite(carSprite);
+            }
+            
+            // Set up blue car sprite for bandits
+            const blueCarImage = this.assetManager.getImage('car_blue');
+            if (blueCarImage) {
+                const banditSprite = new CarSprite(blueCarImage);
+                this.banditManager.setBanditSprite(banditSprite);
             }
             
             // Set up desert world sprites
@@ -102,8 +118,19 @@ export class Game {
         // Update camera to follow vehicle
         this.camera.update(this.vehicle);
         
+        // Update bandits
+        this.banditManager.update(deltaTime);
+        
+        // Vehicle radius for all collision checks
+        const vehicleRadius = 12;
+        
+        // Check collision between player and bandits
+        const collidedBandits = this.banditManager.checkPlayerCollisions(this.vehicle.position, vehicleRadius);
+        for (const bandit of collidedBandits) {
+            this.banditManager.destroyBandit(bandit);
+        }
+        
         // Check collision with water obstacles
-        const vehicleRadius = 12; // Approximate radius for collision detection
         const waterCollision = this.desertWorld.checkWaterCollision(this.vehicle.position, vehicleRadius);
         
         if (waterCollision) {
@@ -163,6 +190,9 @@ export class Game {
         // Render desert world
         this.desertWorld.render(this.ctx, this.camera.position.x, this.camera.position.y, this.canvas.width, this.canvas.height);
         
+        // Render bandits
+        this.banditManager.render(this.ctx);
+        
         // Render vehicle
         this.vehicle.render(this.ctx);
         
@@ -181,11 +211,15 @@ export class Game {
         this.ctx.fillText(`Position: (${Math.round(this.vehicle.position.x)}, ${Math.round(this.vehicle.position.y)})`, 10, 50);
         this.ctx.fillText(`Angle: ${Math.round(this.vehicle.angle * 180 / Math.PI)}°`, 10, 70);
         
+        // Show bandit info
+        const banditStats = this.banditManager.getStats();
+        this.ctx.fillText(`Water Bandits: ${banditStats.active} active`, 10, 90);
+        
         // Show asset loading status
         if (!this.assetsLoaded) {
-            this.ctx.fillText('Assets: Loading...', 10, 90);
+            this.ctx.fillText('Assets: Loading...', 10, 110);
         } else {
-            this.ctx.fillText('Assets: ✓ Loaded', 10, 90);
+            this.ctx.fillText('Assets: ✓ Loaded', 10, 110);
         }
     }
 }
