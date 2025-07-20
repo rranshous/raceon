@@ -68,7 +68,11 @@ export class WaterBandit {
         
         // If genuinely stuck for a long time, add avoidance behavior
         if (this.stuckTimer > 3.0) { // Increased from 2.5 to 3.0 seconds
-            this.createAvoidanceTarget();
+            // Only create new avoidance if we don't have one or the current one is old
+            const avoidanceAge = performance.now() - this.avoidanceStartTime;
+            if (!this.avoidanceTarget || avoidanceAge > 5000) { // 5 second cooldown
+                this.createAvoidanceTarget();
+            }
             this.stuckTimer = 0;
         }
         
@@ -127,17 +131,24 @@ export class WaterBandit {
     }
     
     private createAvoidanceTarget(): void {
-        // Create a temporary target to the side to get unstuck - make it much further
-        const avoidanceDistance = 120 + Math.random() * 80; // Increased from 80 to 120-200
-        const avoidanceAngle = this.angle + (Math.random() > 0.5 ? 1 : -1) * (Math.PI / 2 + Math.random() * Math.PI / 4); // Wider angle range
+        // Create a more strategic avoidance target to prevent oscillation
+        const avoidanceDistance = 150 + Math.random() * 100; // 150-250 pixels away
+        
+        // Try to go around obstacles in the direction of the escape target
+        const escapeDirection = this.escapeTarget.subtract(this.position).normalize();
+        const perpendicular = new Vector2D(-escapeDirection.y, escapeDirection.x); // Perpendicular to escape direction
+        
+        // Choose left or right around the obstacle
+        const sideChoice = Math.random() > 0.5 ? 1 : -1;
+        const avoidanceDirection = escapeDirection.add(perpendicular.multiply(sideChoice)).normalize();
         
         this.avoidanceTarget = new Vector2D(
-            this.position.x + Math.cos(avoidanceAngle) * avoidanceDistance,
-            this.position.y + Math.sin(avoidanceAngle) * avoidanceDistance
+            this.position.x + avoidanceDirection.x * avoidanceDistance,
+            this.position.y + avoidanceDirection.y * avoidanceDistance
         );
         
-        this.avoidanceStartTime = performance.now(); // Track when avoidance started
-        console.log('Bandit created avoidance target - attempting to get unstuck');
+        this.avoidanceStartTime = performance.now();
+        console.log('Bandit created smart avoidance target - going around obstacle toward escape');
     }
     
     private updatePhysics(deltaTime: number): void {
@@ -168,7 +179,7 @@ export class WaterBandit {
     
     // Check if bandit has escaped (reached edge of world)
     hasEscaped(worldWidth: number, worldHeight: number): boolean {
-        const margin = 150; // Much larger escape zone - they escape while still visible
+        const margin = 20; // Much smaller - they must reach the actual edge
         return this.position.x < margin || 
                this.position.x > worldWidth - margin ||
                this.position.y < margin || 

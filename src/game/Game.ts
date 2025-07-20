@@ -235,20 +235,10 @@ export class Game {
     private renderDebugInfo(): void {
         this.ctx.fillStyle = '#fff';
         this.ctx.font = '16px Arial';
-        this.ctx.textAlign = 'left'; // Reset text alignment
-        this.ctx.fillText(`Speed: ${Math.round(this.vehicle.speed)}`, 10, 30);
-        this.ctx.fillText(`Position: (${Math.round(this.vehicle.position.x)}, ${Math.round(this.vehicle.position.y)})`, 10, 50);
-        this.ctx.fillText(`Angle: ${Math.round(this.vehicle.angle * 180 / Math.PI)}°`, 10, 70);
+        this.ctx.textAlign = 'left';
         
-        // Show bandit info
+        // Only show useful gameplay info
         const banditStats = this.banditManager.getStats();
-        this.ctx.fillText(`Water Bandits: ${banditStats.active} active`, 10, 90);
-        
-        // Show asset loading status
-        if (!this.assetsLoaded) {
-            this.ctx.fillText('Assets: Loading...', 10, 110);
-        } else {
-            this.ctx.fillText('Assets: ✓ Loaded', 10, 110);
-        }
+        this.ctx.fillText(`Water Bandits: ${banditStats.active} active`, 10, 30);
     }
 }
