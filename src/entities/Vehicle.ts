@@ -1,11 +1,13 @@
 import { Vector2D } from '../utils/Vector2D';
 import { InputManager } from '../input/InputManager';
+import { CarSprite } from '../graphics/CarSprite';
 
 export class Vehicle {
     public position: Vector2D;
     public velocity: Vector2D;
     public angle: number = 0; // Facing direction in radians
     public speed: number = 0;
+    public sprite: CarSprite | null = null;
     
     // Vehicle properties
     private maxSpeed: number = 200;
@@ -21,6 +23,10 @@ export class Vehicle {
     constructor(x: number, y: number) {
         this.position = new Vector2D(x, y);
         this.velocity = new Vector2D(0, 0);
+    }
+
+    setSprite(sprite: CarSprite): void {
+        this.sprite = sprite;
     }
 
     update(deltaTime: number, input: InputManager): void {
@@ -66,25 +72,16 @@ export class Vehicle {
     }
 
     render(ctx: CanvasRenderingContext2D): void {
-        ctx.save();
-        
-        // Move to vehicle position and rotate
-        ctx.translate(this.position.x, this.position.y);
-        ctx.rotate(this.angle);
-        
-        // Draw vehicle as a simple rectangle
-        ctx.fillStyle = '#ff6b35'; // Orange color
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        
-        // Vehicle body
-        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-        ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
-        
-        // Front indicator (small rectangle at front)
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(this.width / 2 - 3, -2, 3, 4);
-        
-        ctx.restore();
+        if (this.sprite) {
+            // Use sprite rendering with a scale factor to make it bigger
+            this.sprite.render(ctx, this.position.x, this.position.y, this.angle, 1.5);
+        } else {
+            // Render a simple placeholder if sprite not loaded yet
+            ctx.save();
+            ctx.translate(this.position.x, this.position.y);
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(-8, -8, 16, 16);
+            ctx.restore();
+        }
     }
 }
