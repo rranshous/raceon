@@ -2,6 +2,7 @@ import { WaterBandit } from '../entities/WaterBandit';
 import { Vector2D } from '../utils/Vector2D';
 import { WaterObstacle } from '../world/DesertWorld';
 import { CarSprite } from '../graphics/CarSprite';
+import { DesertWorld } from '../world/DesertWorld';
 
 export class BanditManager {
     private bandits: WaterBandit[] = [];
@@ -9,16 +10,18 @@ export class BanditManager {
     private worldWidth: number;
     private worldHeight: number;
     private waterObstacles: WaterObstacle[];
+    private desertWorld: DesertWorld;
     
     // Spawning parameters
     private spawnTimer: number = 0;
     private spawnInterval: number = 8; // Spawn a bandit every 8 seconds
     private maxBandits: number = 4; // Maximum active bandits at once
     
-    constructor(worldWidth: number, worldHeight: number, waterObstacles: WaterObstacle[]) {
+    constructor(worldWidth: number, worldHeight: number, waterObstacles: WaterObstacle[], desertWorld: DesertWorld) {
         this.worldWidth = worldWidth;
         this.worldHeight = worldHeight;
         this.waterObstacles = waterObstacles;
+        this.desertWorld = desertWorld;
     }
     
     setBanditSprite(sprite: CarSprite): void {
@@ -43,6 +46,16 @@ export class BanditManager {
         // Update all bandits
         for (const bandit of this.bandits) {
             bandit.update(deltaTime);
+            
+            // Check water collisions for each bandit (same as player)
+            const banditRadius = Math.max(bandit.width, bandit.height) / 2;
+            const waterCollision = this.desertWorld.checkWaterCollision(bandit.position, banditRadius);
+            if (waterCollision) {
+                bandit.handleWaterCollision(waterCollision, deltaTime);
+            }
+            
+            // Keep bandit within world bounds
+            bandit.clampToWorldBounds(this.worldWidth, this.worldHeight);
         }
         
         // Remove bandits that have escaped or been destroyed

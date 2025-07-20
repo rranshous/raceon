@@ -38,7 +38,8 @@ export class Game {
         this.banditManager = new BanditManager(
             this.desertWorld.worldWidth, 
             this.desertWorld.worldHeight, 
-            this.desertWorld.getWaterObstacles()
+            this.desertWorld.getWaterObstacles(),
+            this.desertWorld
         );
         
         // Start vehicle in the middle of the desert world
