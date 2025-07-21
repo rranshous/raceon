@@ -9,8 +9,9 @@ import { Vector2D } from '../utils/Vector2D';
 import { CarSprite } from '../graphics/CarSprite';
 import { BaseEntity, EntityDefinition } from './EntityRegistry';
 import { EntityBehavior, BehaviorRegistry } from './behaviors/BehaviorRegistry';
+import { PhysicsSystem, PhysicsEntity } from '../physics/PhysicsSystem';
 
-export class WaterBanditEntity implements BaseEntity {
+export class WaterBanditEntity implements BaseEntity, PhysicsEntity {
   public position: Vector2D;
   public velocity: Vector2D;
   public angle: number = 0;
@@ -44,9 +45,15 @@ export class WaterBanditEntity implements BaseEntity {
   update(deltaTime: number, world?: any): void {
     if (!this.isAlive) return;
     
-    // Update behavior if available
+    // Update behavior if available (handles AI movement)
     if (this.behavior && world) {
       this.behavior.update(this, deltaTime, world);
+    }
+    
+    // Use unified physics system for collision detection and terrain effects
+    if (world) {
+      const physicsConfig = PhysicsSystem.createEnemyConfig(this.entityDefinition);
+      PhysicsSystem.updateEntityPhysics(this, deltaTime, world, physicsConfig);
     }
   }
   
@@ -78,14 +85,27 @@ export class WaterBanditEntity implements BaseEntity {
     return this.isAlive;
   }
   
-  // Collision detection methods (preserved from original WaterBandit)
+  // Collision detection methods
   checkCollisionWithPlayer(playerPosition: Vector2D, playerRadius: number): boolean {
     if (!this.isAlive) return false;
     
-    const distance = this.position.subtract(playerPosition).length();
-    const banditRadius = Math.max(this.getWidth(), this.getHeight()) / 2;
+    // Create a temporary physics entity for the player
+    const playerEntity = {
+      position: playerPosition,
+      velocity: new Vector2D(0, 0),
+      speed: 0,
+      angle: 0,
+      getWidth: () => playerRadius * 2,
+      getHeight: () => playerRadius * 2
+    };
     
-    return distance < (banditRadius + playerRadius);
+    // Use unified collision detection
+    return PhysicsSystem.checkEntityCollision(
+      this, 
+      playerEntity, 
+      this.entityDefinition.collisionRadiusMultiplier,
+      0.5
+    );
   }
   
   // Check if bandit has escaped (reached edge of world)
@@ -95,53 +115,6 @@ export class WaterBanditEntity implements BaseEntity {
            this.position.x > worldWidth - margin ||
            this.position.y < margin || 
            this.position.y > worldHeight - margin;
-  }
-  
-  // Handle water collision (same as player)
-  handleWaterCollision(waterCollision: any, deltaTime: number): void {
-    if (!waterCollision) return;
-    
-    const banditRadius = Math.max(this.getWidth(), this.getHeight()) / 3;
-    
-    // Calculate collision response vector
-    const collisionVector = this.position.subtract(waterCollision.position);
-    const collisionDistance = collisionVector.length();
-    
-    if (collisionDistance > 0) {
-      // Normalize the collision vector
-      const collisionNormal = collisionVector.normalize();
-      
-      // Push the bandit away from the water
-      const overlap = banditRadius + waterCollision.radius - collisionDistance;
-      this.position = this.position.add(collisionNormal.multiply(overlap + 2));
-      
-      // Calculate bounce/skid effect
-      const velocityDotNormal = this.velocity.x * collisionNormal.x + 
-                              this.velocity.y * collisionNormal.y;
-      
-      // Reflect velocity along the collision normal (bounce effect)
-      const reflectedVelocity = this.velocity.subtract(
-        collisionNormal.multiply(velocityDotNormal * 1.2)
-      );
-      
-      // Apply the bounced velocity with less damping (keep more momentum)
-      this.velocity = reflectedVelocity.multiply(0.8);
-      this.speed *= 0.8;
-      
-      // Update position based on new velocity to prevent sticking
-      this.position = this.position.add(this.velocity.multiply(deltaTime));
-    }
-  }
-  
-  // Keep bandit within world bounds (but allow escape at edges)
-  clampToWorldBounds(worldWidth: number, worldHeight: number): void {
-    // Only prevent them from going too far off-screen to prevent memory issues
-    const extremeMargin = 200;
-    
-    if (this.position.x < -extremeMargin) this.position.x = -extremeMargin;
-    if (this.position.x > worldWidth + extremeMargin) this.position.x = worldWidth + extremeMargin;
-    if (this.position.y < -extremeMargin) this.position.y = -extremeMargin;
-    if (this.position.y > worldHeight + extremeMargin) this.position.y = worldHeight + extremeMargin;
   }
   
   render(ctx: CanvasRenderingContext2D): void {

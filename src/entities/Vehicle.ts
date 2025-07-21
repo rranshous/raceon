@@ -3,8 +3,9 @@ import { InputManager } from '../input/InputManager';
 import { CarSprite } from '../graphics/CarSprite';
 import { DesertWorld } from '../world/DesertWorld';
 import { GAME_CONFIG } from '../config/GameConfig';
+import { PhysicsSystem, PhysicsEntity } from '../physics/PhysicsSystem';
 
-export class Vehicle {
+export class Vehicle implements PhysicsEntity {
     public position: Vector2D;
     public velocity: Vector2D;
     public angle: number = 0; // Facing direction in radians
@@ -29,6 +30,15 @@ export class Vehicle {
 
     setSprite(sprite: CarSprite): void {
         this.sprite = sprite;
+    }
+    
+    // PhysicsEntity interface methods
+    getWidth(): number {
+        return this.width;
+    }
+    
+    getHeight(): number {
+        return this.height;
     }
 
     update(deltaTime: number, input: InputManager, world?: DesertWorld): void {
@@ -66,66 +76,16 @@ export class Vehicle {
     }
 
     private updatePhysics(deltaTime: number, world?: DesertWorld): void {
-        // Convert speed and angle to velocity vector (no terrain speed reduction here)
-        this.velocity = Vector2D.fromAngle(this.angle, this.speed);
-        
-        // Calculate new position
-        const newPosition = this.position.add(this.velocity.multiply(deltaTime));
-        
-        // Check for rock and water collisions if world is provided
-        if (world) {
-            const vehicleRadius = Math.max(this.width, this.height) * GAME_CONFIG.PHYSICS.VEHICLE_RADIUS_MULTIPLIER;
-            
-            // Check rock collisions (solid obstacles)
-            const rockCollision = world.checkRockCollision(newPosition, vehicleRadius);
-            if (rockCollision) {
-                // Collision with rock - don't move, just bounce back slightly
-                const bounceDirection = this.position.subtract(rockCollision.position).normalize();
-                this.position = this.position.add(bounceDirection.multiply(GAME_CONFIG.VEHICLE.BOUNCE_DISTANCE));
-                this.speed *= GAME_CONFIG.VEHICLE.BOUNCE_FACTOR;
-                return;
-            }
-            
-            // Check water collisions (solid obstacles)
-            const waterCollision = world.checkWaterCollision(newPosition, vehicleRadius);
-            if (waterCollision) {
-                // Collision with water - don't move, just bounce back slightly
-                const bounceDirection = this.position.subtract(waterCollision.position).normalize();
-                this.position = this.position.add(bounceDirection.multiply(GAME_CONFIG.VEHICLE.BOUNCE_DISTANCE));
-                this.speed *= GAME_CONFIG.VEHICLE.BOUNCE_FACTOR;
-                return;
-            }
+        if (!world) {
+            // Fallback: basic movement without collision/terrain
+            this.velocity = Vector2D.fromAngle(this.angle, this.speed);
+            this.position = this.position.add(this.velocity.multiply(deltaTime));
+            return;
         }
         
-        // Update position if no collisions
-        this.position = newPosition;
-        
-        // Apply terrain friction effects AFTER movement
-        if (world) {
-            const terrainEffect = world.getTerrainEffect(this.position);
-            if (terrainEffect < 1.0) {
-                // Apply additional friction based on terrain type (balanced effect)
-                const additionalFriction = (1.0 - terrainEffect) * GAME_CONFIG.VEHICLE.TERRAIN_FRICTION_MULTIPLIER;
-                
-                // Apply terrain friction with a minimum speed floor
-                if (this.speed > 0) {
-                    const newSpeed = this.speed - additionalFriction * deltaTime;
-                    // Set minimum speed floor - always maintain at least 20% of max speed when accelerating
-                    const minSpeed = this.maxSpeed * GAME_CONFIG.VEHICLE.MIN_SPEED_MULTIPLIER;
-                    this.speed = Math.max(minSpeed, newSpeed);
-                } else if (this.speed < 0) {
-                    const newSpeed = this.speed + additionalFriction * deltaTime;
-                    // Same floor for reverse
-                    const minReverseSpeed = -this.maxSpeed * GAME_CONFIG.VEHICLE.MIN_REVERSE_SPEED_MULTIPLIER;
-                    this.speed = Math.min(minReverseSpeed, newSpeed);
-                }
-                
-                // Debug output to see what's happening (less spammy)
-                if (additionalFriction > 0 && Math.random() < GAME_CONFIG.DEBUG.TERRAIN_LOG_FREQUENCY) {
-                    console.log(`Terrain effect: ${terrainEffect.toFixed(2)}, Additional friction: ${additionalFriction.toFixed(0)}, Speed: ${this.speed.toFixed(1)}`);
-                }
-            }
-        }
+        // Use unified physics system
+        const physicsConfig = PhysicsSystem.createVehicleConfig();
+        PhysicsSystem.updateEntityPhysics(this, deltaTime, world, physicsConfig);
     }
 
     render(ctx: CanvasRenderingContext2D): void {

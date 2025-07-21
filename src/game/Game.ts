@@ -21,7 +21,7 @@ export class Game {
     private desertWorld: DesertWorld;
     private camera: Camera;
     private assetManager: AssetManager;
-    private banditManager: EnemyManager;
+    private enemyManager: EnemyManager;
     private debugRenderer: DebugRenderer;
     private screenShake: ScreenShake;
     private particleSystem: ParticleSystem;
@@ -48,7 +48,7 @@ export class Game {
         this.assetManager = AssetManager.getInstance();
         
         // Initialize enemy manager with world info
-        this.banditManager = new EnemyManager(
+        this.enemyManager = new EnemyManager(
             this.desertWorld.worldWidth, 
             this.desertWorld.worldHeight, 
             this.desertWorld.getWaterObstacles(),
@@ -86,7 +86,7 @@ export class Game {
             const blueCarImage = this.assetManager.getImage('car_blue');
             if (blueCarImage) {
                 const banditSprite = new CarSprite(blueCarImage);
-                this.banditManager.setBanditSprite(banditSprite);
+                this.enemyManager.setBanditSprite(banditSprite);
             }
             
             // Set up desert world sprites
@@ -148,35 +148,35 @@ export class Game {
         // Update camera to follow vehicle
         this.camera.update(this.vehicle);
         
-        // Update bandits
-        this.banditManager.update(deltaTime);
+                // Update game entities
+        this.enemyManager.update(deltaTime);
         
         // Vehicle radius for all collision checks
         const vehicleRadius = 12;
         
-        // Check collision between player and bandits
-        const collidedBandits = this.banditManager.checkPlayerCollisions(this.vehicle.position, vehicleRadius);
-        for (const bandit of collidedBandits) {
+        // Check collision between player and enemies
+        const collidedEnemies = this.enemyManager.checkPlayerCollisions(this.vehicle.position, vehicleRadius);
+        for (const enemy of collidedEnemies) {
             // Create destruction effects!
-            this.particleSystem.createDestructionParticles(bandit.position, bandit.velocity);
-            this.screenShake.shake(15, 0.3); // Intense shake for bandit destruction
+            this.particleSystem.createDestructionParticles(enemy.position, enemy.velocity);
+            this.screenShake.shake(15, 0.3); // Intense shake for enemy destruction
             
-            this.banditManager.destroyBandit(bandit);
+            this.enemyManager.destroyBandit(enemy);
         }
         
         // Add tire tracks for player
         this.tireTrackSystem.addTracks('player', this.vehicle.position, this.vehicle.angle, this.vehicle.speed, 'player');
         
-        // Add tire tracks for bandits and dust effects
-        const activeBandits = this.banditManager.getActiveBandits();
-        activeBandits.forEach((bandit, index) => {
-            this.tireTrackSystem.addTracks(`bandit_${index}`, bandit.position, bandit.angle, bandit.speed, 'bandit');
+        // Add tire tracks for enemies and dust effects
+        const activeEnemies = this.enemyManager.getActiveBandits();
+        activeEnemies.forEach((enemy, index) => {
+            this.tireTrackSystem.addTracks(`enemy_${index}`, enemy.position, enemy.angle, enemy.speed, 'bandit');
             
-            // Add dust trails for bandits when moving fast
-            if (bandit.speed > 70) {
-                const backOffset = new Vector2D(-Math.cos(bandit.angle), -Math.sin(bandit.angle)).multiply(12);
-                const dustPosition = bandit.position.add(backOffset);
-                this.particleSystem.createDustParticles(dustPosition, bandit.velocity, 1);
+            // Add dust trails for enemies when moving fast
+            if (enemy.speed > 70) {
+                const backOffset = new Vector2D(-Math.cos(enemy.angle), -Math.sin(enemy.angle)).multiply(12);
+                const dustPosition = enemy.position.add(backOffset);
+                this.particleSystem.createDustParticles(dustPosition, enemy.velocity, 1);
             }
         });
         
@@ -264,7 +264,7 @@ export class Game {
         // Render debug overlays in world space (before restoring context)
         this.debugRenderer.renderWorldDebug(
             this.ctx,
-            this.banditManager.getActiveBandits(),
+            this.enemyManager.getActiveBandits(),
             this.desertWorld.getWaterObstacles(),
             this.vehicle,
             this.camera.position.x,
@@ -274,7 +274,7 @@ export class Game {
         );
         
         // Render bandits
-        this.banditManager.render(this.ctx);
+        this.enemyManager.render(this.ctx);
         
         // Render vehicle
         this.vehicle.render(this.ctx);
@@ -289,7 +289,7 @@ export class Game {
         this.renderDebugInfo();
         
         // Render debug UI overlays (not affected by camera)
-        this.debugRenderer.renderUIDebug(this.ctx, this.banditManager.getActiveBandits(), this.vehicle);
+        this.debugRenderer.renderUIDebug(this.ctx, this.enemyManager.getActiveBandits(), this.vehicle);
     }
 
     private renderDebugInfo(): void {
@@ -298,7 +298,7 @@ export class Game {
         this.ctx.textAlign = 'left';
         
         // Only show useful gameplay info
-        const banditStats = this.banditManager.getStats();
+        const banditStats = this.enemyManager.getStats();
         this.ctx.fillText(`Water Bandits: ${banditStats.active} active`, 10, 30);
     }
 }

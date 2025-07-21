@@ -68,8 +68,8 @@ export class EscapingBehavior implements EntityBehavior {
     const state = this.behaviorState.get(entity);
     if (!state || !entity.isAlive) return;
     
+    // Only handle AI logic - physics is handled by the unified physics system
     this.updateAI(entity, state, deltaTime);
-    this.updatePhysics(entity, state, deltaTime);
   }
   
   private updateAI(entity: BaseEntity, state: EscapingBehaviorState, deltaTime: number): void {
@@ -173,14 +173,6 @@ export class EscapingBehavior implements EntityBehavior {
     
     state.avoidanceStartTime = performance.now();
     console.log('Entity created smart avoidance target - going around obstacle toward escape');
-  }
-  
-  private updatePhysics(entity: BaseEntity, _state: EscapingBehaviorState, deltaTime: number): void {
-    // Convert speed and angle to velocity vector
-    entity.velocity = Vector2D.fromAngle(entity.angle, entity.speed);
-    
-    // Update position
-    entity.position = entity.position.add(entity.velocity.multiply(deltaTime));
   }
   
   cleanup(entity: BaseEntity): void {

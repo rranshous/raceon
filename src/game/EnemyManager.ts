@@ -101,18 +101,6 @@ export class EnemyManager {
     // Update all enemies of this type
     for (const enemy of manager.enemies) {
       enemy.update(deltaTime, this.desertWorld);
-      
-      // Check water collisions
-      const enemyRadius = Math.max(enemy.getWidth(), enemy.getHeight()) * entityDef.collisionRadiusMultiplier;
-      const waterCollision = this.desertWorld.checkWaterCollision(enemy.position, enemyRadius);
-      if (waterCollision && 'handleWaterCollision' in enemy) {
-        (enemy as any).handleWaterCollision(waterCollision, deltaTime);
-      }
-      
-      // Keep enemy within world bounds
-      if ('clampToWorldBounds' in enemy) {
-        (enemy as any).clampToWorldBounds(this.worldWidth, this.worldHeight);
-      }
     }
     
     // Remove enemies that have escaped or been destroyed
