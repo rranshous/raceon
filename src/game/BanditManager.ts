@@ -3,6 +3,7 @@ import { Vector2D } from '../utils/Vector2D';
 import { WaterObstacle } from '../world/DesertWorld';
 import { CarSprite } from '../graphics/CarSprite';
 import { DesertWorld } from '../world/DesertWorld';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 export class BanditManager {
     private bandits: WaterBandit[] = [];
@@ -12,10 +13,10 @@ export class BanditManager {
     private waterObstacles: WaterObstacle[];
     private desertWorld: DesertWorld;
     
-    // Spawning parameters
+    // Spawning parameters (from config)
     private spawnTimer: number = 0;
-    private spawnInterval: number = 8; // Spawn a bandit every 8 seconds
-    private maxBandits: number = 4; // Maximum active bandits at once
+    private spawnInterval: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.SPAWN_INTERVAL;
+    private maxBandits: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.MAX_ACTIVE;
     
     constructor(worldWidth: number, worldHeight: number, waterObstacles: WaterObstacle[], desertWorld: DesertWorld) {
         this.worldWidth = worldWidth;
@@ -48,7 +49,7 @@ export class BanditManager {
             bandit.update(deltaTime);
             
             // Check water collisions for each bandit - reduced sensitivity
-            const banditRadius = Math.max(bandit.width, bandit.height) / 3; // Reduced from /2 to /3
+            const banditRadius = Math.max(bandit.width, bandit.height) * GAME_CONFIG.ENEMIES.WATER_BANDIT.COLLISION_RADIUS_MULTIPLIER;
             const waterCollision = this.desertWorld.checkWaterCollision(bandit.position, banditRadius);
             if (waterCollision) {
                 bandit.handleWaterCollision(waterCollision, deltaTime);
@@ -80,7 +81,8 @@ export class BanditManager {
         const waterHole = this.waterObstacles[Math.floor(Math.random() * this.waterObstacles.length)];
         
         // Spawn bandit near the water hole (slightly offset)
-        const spawnOffset = 30 + Math.random() * 20; // 30-50 pixels from water
+        const spawnOffset = GAME_CONFIG.ENEMIES.WATER_BANDIT.SPAWN_DISTANCE_MIN + 
+                           Math.random() * (GAME_CONFIG.ENEMIES.WATER_BANDIT.SPAWN_DISTANCE_MAX - GAME_CONFIG.ENEMIES.WATER_BANDIT.SPAWN_DISTANCE_MIN);
         const spawnAngle = Math.random() * Math.PI * 2;
         const spawnPosition = new Vector2D(
             waterHole.position.x + Math.cos(spawnAngle) * spawnOffset,

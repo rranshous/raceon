@@ -1,5 +1,6 @@
 import { Vector2D } from '../utils/Vector2D';
 import { CarSprite } from '../graphics/CarSprite';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 export class WaterBandit {
     public position: Vector2D;
@@ -9,13 +10,13 @@ export class WaterBandit {
     public sprite: CarSprite | null = null;
     public isAlive: boolean = true;
     
-    // Bandit properties
-    private maxSpeed: number = 150; // Slightly slower than player
-    private acceleration: number = 200;
-    private friction: number = 80;
-    private turnSpeed: number = 2;
+    // Bandit properties (from config)
+    private maxSpeed: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.MAX_SPEED;
+    private acceleration: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.ACCELERATION;
+    private friction: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.FRICTION;
+    private turnSpeed: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.TURN_SPEED;
     
-    // AI properties
+    // AI properties (from config)
     private escapeTarget: Vector2D;
     private state: 'escaping' | 'destroyed' = 'escaping';
     private wanderAngle: number = 0; // For natural movement variation
@@ -24,9 +25,9 @@ export class WaterBandit {
     private avoidanceTarget: Vector2D | null = null; // Temporary avoidance target
     private avoidanceStartTime: number = 0; // Track how long we've been avoiding
     
-    // Dimensions
-    public width: number = 20;
-    public height: number = 12;
+    // Dimensions (from config)
+    public width: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.WIDTH;
+    public height: number = GAME_CONFIG.ENEMIES.WATER_BANDIT.HEIGHT;
     
     constructor(startPosition: Vector2D, escapeTarget: Vector2D) {
         this.position = new Vector2D(startPosition.x, startPosition.y);
@@ -59,18 +60,19 @@ export class WaterBandit {
         const expectedMovement = this.speed * deltaTime; // How far we should have moved
         
         // Only consider stuck if we're trying to move but not getting anywhere
-        if (this.speed > 20 && distanceMoved < expectedMovement * 0.3) { // Less than 30% of expected movement
+        if (this.speed > GAME_CONFIG.ENEMIES.WATER_BANDIT.MIN_MOVEMENT_SPEED && 
+            distanceMoved < expectedMovement * GAME_CONFIG.ENEMIES.WATER_BANDIT.STUCK_MOVEMENT_THRESHOLD) {
             this.stuckTimer += deltaTime;
         } else {
-            this.stuckTimer = Math.max(0, this.stuckTimer - deltaTime * 3); // Quickly reduce when moving well
+            this.stuckTimer = Math.max(0, this.stuckTimer - deltaTime * GAME_CONFIG.ENEMIES.WATER_BANDIT.STUCK_TIMER_DECAY);
         }
         this.lastPosition = new Vector2D(this.position.x, this.position.y);
         
         // If genuinely stuck for a long time, add avoidance behavior
-        if (this.stuckTimer > 3.0) { // Increased from 2.5 to 3.0 seconds
+        if (this.stuckTimer > GAME_CONFIG.ENEMIES.WATER_BANDIT.STUCK_DETECTION_TIME) {
             // Only create new avoidance if we don't have one or the current one is old
             const avoidanceAge = performance.now() - this.avoidanceStartTime;
-            if (!this.avoidanceTarget || avoidanceAge > 5000) { // 5 second cooldown
+            if (!this.avoidanceTarget || avoidanceAge > GAME_CONFIG.ENEMIES.WATER_BANDIT.AVOIDANCE_COOLDOWN * 1000) {
                 this.createAvoidanceTarget();
             }
             this.stuckTimer = 0;
@@ -85,7 +87,7 @@ export class WaterBandit {
             const distanceToAvoidance = this.position.subtract(this.avoidanceTarget).length();
             const avoidanceAge = performance.now() - this.avoidanceStartTime;
             
-            if (distanceToAvoidance < 50 || avoidanceAge > 8000) { // 8 seconds max avoidance
+            if (distanceToAvoidance < 50 || avoidanceAge > GAME_CONFIG.ENEMIES.WATER_BANDIT.AVOIDANCE_DURATION * 1000) {
                 this.avoidanceTarget = null;
                 console.log('Bandit cleared avoidance target - reached destination or timeout');
             }
@@ -97,7 +99,7 @@ export class WaterBandit {
         
         if (distanceToTarget > 10) {
             // Add some wandering behavior for more natural movement (reduced swerving)
-            this.wanderAngle += (Math.random() - 0.5) * 0.8 * deltaTime; // Reduced from 2 to 0.8
+            this.wanderAngle += (Math.random() - 0.5) * GAME_CONFIG.ENEMIES.WATER_BANDIT.WANDER_STRENGTH * deltaTime;
             
             // Calculate desired angle (target direction + wander)
             const targetAngle = Math.atan2(directionToTarget.y, directionToTarget.x);

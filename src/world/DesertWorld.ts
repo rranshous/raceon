@@ -1,5 +1,6 @@
 import { Vector2D } from '../utils/Vector2D';
 import { DesertTile, DesertSprite } from '../graphics/DesertSprite';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 export interface WaterObstacle {
     position: Vector2D;
@@ -25,9 +26,9 @@ export class DesertWorld {
     private terrainEffects: TerrainEffect[] = [];
     private desertSprite: DesertSprite | null = null;
     
-    // World dimensions - much larger than previous track
-    public readonly worldWidth = 2400;  // 3x wider
-    public readonly worldHeight = 1800; // 3x taller
+    // World dimensions (from config)
+    public readonly worldWidth = GAME_CONFIG.WORLD.WIDTH;
+    public readonly worldHeight = GAME_CONFIG.WORLD.HEIGHT;
     
     constructor() {
         this.generateDesertTerrain();
@@ -39,7 +40,7 @@ export class DesertWorld {
     }
 
     private generateDesertTerrain(): void {
-        const tileSize = 32; // Tile size for rendering
+        const tileSize = GAME_CONFIG.WORLD.TILE_SIZE; // Tile size for rendering
         
         // Create sand base layer - ensure full coverage with overlapping tiles
         for (let x = -tileSize; x < this.worldWidth + tileSize; x += tileSize) {
