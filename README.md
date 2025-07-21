@@ -1,6 +1,6 @@
 # RaceOn - Desert Bandit Racing Game
 
-A browser-based combat racing game inspired by Rock 'n Roll Racing, built with TypeScript and HTML5 Canvas.
+A browser-based combat racing game, built with TypeScript and HTML5 Canvas.
 
 ## 🎮 Current State
 
