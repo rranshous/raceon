@@ -11,6 +11,8 @@ import { WaterObstacle } from '../world/DesertWorld';
 import { CarSprite } from '../graphics/CarSprite';
 import { DesertWorld } from '../world/DesertWorld';
 import { BaseEntity, EntityFactory, EntityRegistry } from '../entities/EntityRegistry';
+import { GameEvents } from '../events/GameEvents';
+import { EVENT_TYPES, EnemySpawnedEvent, EnemyDestroyedEvent, EnemyEscapedEvent } from '../events/EventTypes';
 
 interface EnemyTypeManager {
   entityId: string;
@@ -105,6 +107,13 @@ export class EnemyManager {
       // Check if enemy has escaped (if it has the method)
       if ('hasEscaped' in enemy) {
         if ((enemy as any).hasEscaped(this.worldWidth, this.worldHeight)) {
+          // Emit escape event instead of just logging
+          GameEvents.emit(EVENT_TYPES.ENEMY_ESCAPED, {
+            enemy,
+            position: enemy.getPosition(),
+            enemyType: entityDef.id
+          } as EnemyEscapedEvent);
+          
           console.log(`A ${entityDef.name} escaped! 💧😱`);
           return false; // Remove escaped enemies
         }
@@ -151,6 +160,14 @@ export class EnemyManager {
     }
     
     manager.enemies.push(enemy);
+    
+    // Emit spawn event
+    GameEvents.emit(EVENT_TYPES.ENEMY_SPAWNED, {
+      enemy,
+      position: spawnPosition,
+      enemyType: entityId
+    } as EnemySpawnedEvent);
+    
     console.log(`${entityDef.name} spotted at water hole! They're heading for the edge! 🚗💨`);
   }
   
@@ -195,9 +212,19 @@ export class EnemyManager {
    * Destroy an enemy (called when player rams them)
    */
   destroyEnemy(enemy: BaseEntity): void {
-    enemy.destroy();
     const entityDef = EntityRegistry.get((enemy as any).entityDefinition?.id || 'unknown');
     const name = entityDef?.name || 'Enemy';
+    
+    // Emit destruction event before destroying
+    GameEvents.emit(EVENT_TYPES.ENEMY_DESTROYED, {
+      enemy,
+      position: enemy.getPosition(),
+      velocity: (enemy as any).velocity || new Vector2D(0, 0),
+      enemyType: entityDef?.id || 'unknown',
+      destroyedBy: 'player'
+    } as EnemyDestroyedEvent);
+    
+    enemy.destroy();
     console.log(`Justice served! ${name} destroyed! 💥⚖️`);
   }
   

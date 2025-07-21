@@ -12,6 +12,8 @@ import { ParticleSystem } from '../effects/ParticleSystem';
 import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
+import { GameEvents } from '../events/GameEvents';
+import { EVENT_TYPES, EnemyDestroyedEvent } from '../events/EventTypes';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -63,12 +65,29 @@ export class Game {
         this.particleSystem = new ParticleSystem();
         this.tireTrackSystem = new TireTrackSystem();
         
+        // Set up event listeners for decoupled effects
+        this.setupEventListeners();
+        
         // Start vehicle in the middle of the desert world
         this.vehicle = new Vehicle(this.desertWorld.worldWidth / 2, this.desertWorld.worldHeight / 2);
         this.vehicle.angle = 0; // Facing right initially
         
         // Load assets
         this.loadAssets();
+    }
+
+    /**
+     * Set up event listeners for decoupled effects
+     */
+    private setupEventListeners(): void {
+        // Listen for enemy destruction events to trigger effects
+        GameEvents.on(EVENT_TYPES.ENEMY_DESTROYED, (event: EnemyDestroyedEvent) => {
+            // Create destruction particles
+            this.particleSystem.createDestructionParticles(event.position, event.velocity);
+            
+            // Trigger screen shake
+            this.screenShake.shake(15, 0.3);
+        });
     }
 
     private async loadAssets(): Promise<void> {
@@ -157,10 +176,7 @@ export class Game {
         // Check collision between player and enemies
         const collidedEnemies = this.enemyManager.checkPlayerCollisions(this.vehicle.position, vehicleRadius);
         for (const enemy of collidedEnemies) {
-            // Create destruction effects!
-            this.particleSystem.createDestructionParticles(enemy.position, enemy.velocity);
-            this.screenShake.shake(15, 0.3); // Intense shake for enemy destruction
-            
+            // Destroy the enemy - effects will be triggered via events
             this.enemyManager.destroyEnemy(enemy);
         }
         

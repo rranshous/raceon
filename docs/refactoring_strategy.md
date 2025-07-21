@@ -308,34 +308,49 @@ The goal is to **remove friction** from trying these ideas, not lock into any sp
 - ✅ **Repository Updated**: Changes committed and pushed
 - **Benefits**: All gameplay values in one place, easy to experiment with balance
 
-### ✅ 2. Simple Entity Registry ⭐ COMPLETED & WORKING
+### ✅ 2. Simple Entity Registry ⭐ COMPLETED & CONSOLIDATED
 **Why**: Add new enemy types in minutes, not hours
 **Risk**: Low
-**Status**: ✅ COMPLETED & RUNTIME VERIFIED
+**Status**: ✅ COMPLETED & CONSOLIDATED PHYSICS
 **Results**:
 - ✅ **Created Entity Registry System** - Flexible entity definitions and factory pattern
 - ✅ **Implemented Behavior System** - Pluggable AI behaviors (EscapingBehavior extracted)
 - ✅ **Built Generic Enemy Manager** - Replaced BanditManager with flexible multi-type system
 - ✅ **Updated Game Integration** - Modified Game.ts and DebugRenderer for BaseEntity interface
 - ✅ **Fixed Browser Compatibility** - Resolved require() error, works in browser
-- ✅ **Backward Compatible** - All existing bandit functionality preserved
+- ✅ **Unified Physics System** - Single PhysicsSystem.ts handles all collision/terrain for consistency
+- ✅ **Removed Dead Code** - Eliminated 700+ lines of legacy WaterBandit/BanditManager code
+- ✅ **Consolidated Architecture** - All entities now use same physics, cleaner codebase
 - ✅ **Build & Runtime Verified** - TypeScript compiles, game runs without errors
 - **Benefits**: 
   - New enemy types can be added by just registering config + behavior
   - AI behaviors are reusable across different entity types
-  - Easy to experiment with different enemy stats and behaviors
+  - Single physics implementation - easier maintenance and consistent behavior
+  - All entities (player + enemies) have identical collision/terrain physics
   - Foundation ready for quick content expansion
 
-### ⏭️ 3. Runtime Game Tweaker ⭐ READY TO START
-**Why**: Experiment without restart cycles
-**Risk**: Low
+### ✅ 3. Event System Foundation ⭐ STARTING NOW
+**Why**: Decouple features for easy experimentation - TRUE REFACTORING
+**Risk**: Medium  
+**Status**: 🔨 IN PROGRESS
+**Goal**: Loose coupling between game systems via pub/sub events
 **Steps**:
-1. Debug panel for live stat modification
-2. Instant enemy spawning for testing
-3. Visual toggle switches (effects on/off, debug overlays)
-4. Save/load experiment presets
+1. **Simple Event System** - Basic pub/sub without over-engineering
+2. **Convert Existing Interactions** - Player-enemy collisions, destruction, spawning
+3. **Decouple Effects** - Particles, screen shake, tire tracks respond to events
+4. **Verify Identical Behavior** - All existing functionality preserved
 
-### 4. Event System Foundation
+**Refactoring Benefits**:
+- Systems no longer directly depend on each other
+- Easy to add new reactions to existing events
+- Clear separation of concerns (physics vs effects vs UI)
+- Foundation for any future gameplay additions
+
+### ~~3. Runtime Game Tweaker~~ ⭐ SKIPPED - NOT REFACTORING
+**Why Skipped**: This is feature development, not architectural improvement
+**Note**: Would be nice-to-have for balancing, but not core refactoring work
+
+### 4. Game Loop Extraction
 **Why**: Decouple features for easy experimentation
 **Risk**: Medium
 **Steps**:
