@@ -5,12 +5,13 @@ import { AssetManager } from '../assets/AssetManager';
 import { CarSprite } from '../graphics/CarSprite';
 import { DesertSprite } from '../graphics/DesertSprite';
 import { Camera } from '../camera/Camera';
-import { BanditManager } from './BanditManager';
+import { EnemyManager } from './EnemyManager';
 import { DebugRenderer } from '../debug/DebugRenderer';
 import { ScreenShake } from '../effects/ScreenShake';
 import { ParticleSystem } from '../effects/ParticleSystem';
 import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
+import { initializeEntitySystem } from '../entities/EntitySystemInit';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -20,7 +21,7 @@ export class Game {
     private desertWorld: DesertWorld;
     private camera: Camera;
     private assetManager: AssetManager;
-    private banditManager: BanditManager;
+    private banditManager: EnemyManager;
     private debugRenderer: DebugRenderer;
     private screenShake: ScreenShake;
     private particleSystem: ParticleSystem;
@@ -38,13 +39,16 @@ export class Game {
         }
         this.ctx = ctx;
         
+        // Initialize entity system
+        initializeEntitySystem();
+        
         this.inputManager = new InputManager();
         this.desertWorld = new DesertWorld();
         this.camera = new Camera(canvas.width, canvas.height, this.desertWorld.worldWidth, this.desertWorld.worldHeight);
         this.assetManager = AssetManager.getInstance();
         
-        // Initialize bandit manager with world info
-        this.banditManager = new BanditManager(
+        // Initialize enemy manager with world info
+        this.banditManager = new EnemyManager(
             this.desertWorld.worldWidth, 
             this.desertWorld.worldHeight, 
             this.desertWorld.getWaterObstacles(),

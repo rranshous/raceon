@@ -1,4 +1,4 @@
-import { WaterBandit } from '../entities/WaterBandit';
+import { BaseEntity } from '../entities/EntityRegistry';
 import { WaterObstacle } from '../world/DesertWorld';
 import { Vehicle } from '../entities/Vehicle';
 
@@ -19,7 +19,7 @@ export class DebugRenderer {
     // Render all debug overlays in world space (affected by camera)
     renderWorldDebug(
         ctx: CanvasRenderingContext2D, 
-        bandits: WaterBandit[], 
+        bandits: BaseEntity[], 
         waterObstacles: WaterObstacle[],
         player: Vehicle,
         cameraX: number,
@@ -43,7 +43,7 @@ export class DebugRenderer {
     }
     
     // Render UI debug info (not affected by camera)
-    renderUIDebug(ctx: CanvasRenderingContext2D, bandits: WaterBandit[], player: Vehicle): void {
+    renderUIDebug(ctx: CanvasRenderingContext2D, bandits: BaseEntity[], player: Vehicle): void {
         if (!this.isEnabled) return;
         
         // Semi-transparent background for debug panel
@@ -65,17 +65,20 @@ export class DebugRenderer {
         y += 15;
         
         // Bandit summary
-        const aliveBandits = bandits.filter(b => b.isAlive);
-        const stuckBandits = aliveBandits.filter(b => b.getDebugInfo().isStuck);
+        const aliveBandits = bandits.filter(b => b.getIsAlive());
+        const stuckBandits = aliveBandits.filter(b => b.getDebugInfo && b.getDebugInfo().isStuck);
         ctx.fillText(`Bandits: ${aliveBandits.length} alive, ${stuckBandits.length} stuck`, 20, y);
         y += 15;
         
         // Escape progress
         aliveBandits.forEach((bandit, index) => {
-            const debug = bandit.getDebugInfo();
-            const distanceToEscape = debug.position.subtract(debug.escapeTarget).length();
-            const escapeProgress = Math.max(0, 100 - (distanceToEscape / 20)); // Rough percentage
-            ctx.fillText(`B${index + 1}: ${Math.round(escapeProgress)}% escaped`, 20, y);
+            if (bandit.getDebugInfo) {
+                const debug = bandit.getDebugInfo();
+                // For now, just show basic info since we don't know the exact structure
+                ctx.fillText(`B${index + 1}: ${JSON.stringify(debug).substring(0, 30)}...`, 20, y);
+            } else {
+                ctx.fillText(`B${index + 1}: No debug info available`, 20, y);
+            }
             y += 15;
         });
         
@@ -117,31 +120,34 @@ export class DebugRenderer {
     
     private renderBanditDebug(
         ctx: CanvasRenderingContext2D, 
-        bandits: WaterBandit[],
+        bandits: BaseEntity[],
         cameraX: number, cameraY: number, canvasWidth: number, canvasHeight: number, margin: number
     ): void {
         bandits.forEach((bandit, index) => {
-            if (!bandit.isAlive) return;
+            if (!bandit.getIsAlive()) return;
             
+            if (!bandit.getDebugInfo) return; // Skip if no debug info available
             const debug = bandit.getDebugInfo();
             
             // Only render if bandit is visible
-            if (debug.position.x >= cameraX - margin &&
-                debug.position.x <= cameraX + canvasWidth + margin &&
-                debug.position.y >= cameraY - margin &&
-                debug.position.y <= cameraY + canvasHeight + margin) {
+            if (bandit.position.x >= cameraX - margin &&
+                bandit.position.x <= cameraX + canvasWidth + margin &&
+                bandit.position.y >= cameraY - margin &&
+                bandit.position.y <= cameraY + canvasHeight + margin) {
                 
-                // Draw line to escape target
-                ctx.strokeStyle = debug.isStuck ? '#ff0000' : '#ff00ff';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([10, 5]);
-                ctx.beginPath();
-                ctx.moveTo(debug.position.x, debug.position.y);
-                ctx.lineTo(debug.escapeTarget.x, debug.escapeTarget.y);
-                ctx.stroke();
+                // Draw line to escape target (with null check)
+                if (debug.escapeTarget && debug.position) {
+                    ctx.strokeStyle = debug.isStuck ? '#ff0000' : '#ff00ff';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([10, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(debug.position.x, debug.position.y);
+                    ctx.lineTo(debug.escapeTarget.x, debug.escapeTarget.y);
+                    ctx.stroke();
+                }
                 
                 // Draw avoidance target if exists
-                if (debug.avoidanceTarget) {
+                if (debug.avoidanceTarget && debug.position) {
                     ctx.strokeStyle = '#ffff00';
                     ctx.lineWidth = 3;
                     ctx.setLineDash([5, 5]);
@@ -158,27 +164,32 @@ export class DebugRenderer {
                 }
                 
                 // Escape target marker
-                ctx.fillStyle = '#ff00ff';
-                ctx.beginPath();
-                ctx.arc(debug.escapeTarget.x, debug.escapeTarget.y, 12, 0, Math.PI * 2);
-                ctx.fill();
+                if (debug.escapeTarget) {
+                    ctx.fillStyle = '#ff00ff';
+                    ctx.beginPath();
+                    ctx.arc(debug.escapeTarget.x, debug.escapeTarget.y, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
                 
                 // Bandit state indicator
-                const statusColor = debug.isStuck ? '#ff0000' : debug.avoidanceTarget ? '#ffff00' : '#00ff00';
-                ctx.fillStyle = statusColor;
-                ctx.beginPath();
-                ctx.arc(debug.position.x, debug.position.y - 25, 6, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Bandit ID and status
-                ctx.fillStyle = statusColor;
-                ctx.font = '12px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText(`B${index + 1}`, debug.position.x, debug.position.y - 30);
-                
-                // Speed indicator
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText(`${Math.round(debug.speed)}`, debug.position.x, debug.position.y + 35);
+                if (debug.position) {
+                    const statusColor = debug.isStuck ? '#ff0000' : debug.avoidanceTarget ? '#ffff00' : '#00ff00';
+                    ctx.fillStyle = statusColor;
+                    ctx.beginPath();
+                    ctx.arc(debug.position.x, debug.position.y - 25, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Bandit ID and status
+                    ctx.fillStyle = statusColor;
+                    ctx.font = '12px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`B${index + 1}`, debug.position.x, debug.position.y - 30);
+                    
+                    // Speed indicator
+                    ctx.fillStyle = '#ffffff';
+                    const speed = debug.speed || bandit.speed || 0;
+                    ctx.fillText(`${Math.round(speed)}`, debug.position.x, debug.position.y + 35);
+                }
             }
         });
         
