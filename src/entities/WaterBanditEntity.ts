@@ -147,12 +147,8 @@ export class WaterBanditEntity implements BaseEntity {
   render(ctx: CanvasRenderingContext2D): void {
     if (!this.isAlive || !this.sprite) return;
     
-    // Same rendering logic as original WaterBandit
-    ctx.save();
-    ctx.translate(this.position.x, this.position.y);
-    ctx.rotate(this.angle);
-    this.sprite.render(ctx, -this.getWidth() / 2, -this.getHeight() / 2, this.getWidth(), this.getHeight());
-    ctx.restore();
+    // Use the same rendering logic as original WaterBandit
+    this.sprite.render(ctx, this.position.x, this.position.y, this.angle, 1.5);
   }
   
   // Debug information

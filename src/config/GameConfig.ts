@@ -65,7 +65,7 @@ export const GAME_CONFIG = {
       MIN_MOVEMENT_SPEED: 20,            // Minimum speed to consider for stuck detection
       
       // Spawning
-      SPAWN_INTERVAL: 8,    // Seconds between spawns
+      SPAWN_INTERVAL: 2,    // Seconds between spawns
       MAX_ACTIVE: 4,        // Maximum bandits alive at once
       SPAWN_DISTANCE_MIN: 30,  // Min pixels from water source
       SPAWN_DISTANCE_MAX: 50   // Max pixels from water source
