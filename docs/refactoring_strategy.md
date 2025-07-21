@@ -121,11 +121,6 @@ export class GameTweaker {
     this.applyTweak(path, value);
   }
   
-  // Hot-reload configs without restart
-  reloadConfig(): void {
-    // Re-read config file and apply changes
-  }
-  
   // Quick enemy spawning for testing
   spawnEnemy(type: string, position: Vector2D): void {
     const config = GAME_CONFIG.ENEMIES[type];
@@ -267,13 +262,14 @@ The goal is to **remove friction** from trying these ideas, not lock into any sp
 ## 🎯 Immediate Quick Wins - Flexibility First
 
 ### 1. Configuration Extraction ⭐ START HERE
-**Why**: Enables instant gameplay tuning without code changes
+**Why**: Enables instant gameplay tuning with simple restarts
 **Risk**: Very low
 **Steps**:
 1. Move all magic numbers to `GameConfig.ts` with clear sections
-2. Add live config reloading (press 'R' to reload config file)
-3. Group by feature: vehicles, enemies, progression, world, effects
-4. Test: Change bandit speed in config, reload, see immediate change
+2. Group by feature: vehicles, enemies, progression, world, effects
+3. Test: Change bandit speed in config, restart, see immediate change
+
+**Benefits**: All gameplay values in one place, easy to experiment with balance
 
 ### 2. Simple Entity Registry
 **Why**: Add new enemy types in minutes, not hours
@@ -392,10 +388,9 @@ const tankRaider = EntityFactory.create('raider', {
 
 ### Implementation Strategy & Testing Checkpoints
 
-#### Change 1: Configuration Extraction ⚡ (2-3 hours)
+#### Change 1: Configuration Extraction ⚡ (1-2 hours)
 **Files to Create:**
-- `src/config/GameConfig.ts` - Central configuration
-- `src/config/ConfigLoader.ts` - Live reloading capability
+- `src/config/GameConfig.ts` - Central configuration (TypeScript for type safety)
 
 **Files to Modify:**
 - `src/game/Game.ts` - Replace magic numbers with GAME_CONFIG imports
@@ -416,12 +411,13 @@ npm run dev
 # - All physics feel identical
 
 # 3. Test config modification:
-# - Change GAME_CONFIG.VEHICLE.MAX_SPEED to 300
+# - Change GAME_CONFIG.VEHICLE.MAX_SPEED to 300 in code
+# - Restart game (npm run dev)
 # - Verify vehicle is noticeably faster
-# - Change back to 200, verify normal speed
+# - Change back to 200, restart, verify normal speed
 ```
 
-**Success Criteria:** Game plays exactly the same, but tweaking config values has immediate effect
+**Success Criteria:** Game plays exactly the same, but tweaking config values and restarting shows immediate effect
 
 #### Change 2: Simple Entity Registry ⚡ (3-4 hours)
 **Files to Create:**
@@ -471,12 +467,10 @@ npm run dev
 # - Spawn enemies manually for testing
 # - Toggle visual effects on/off
 
-# 3. Test config reloading:
-# - Press 'R' to reload config
-# - Change config file, reload, see changes
+# No config reloading - just runtime tweaking of current session
 ```
 
-**Success Criteria:** Live tweaking works without breaking core gameplay
+**Success Criteria:** Live tweaking works for current session without breaking core gameplay
 
 #### Change 4: Event System Foundation ⚡ (3-4 hours)
 **Files to Create:**
