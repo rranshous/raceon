@@ -13,7 +13,7 @@ import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
 import { GameEvents } from '../events/GameEvents';
-import { EVENT_TYPES, EnemyDestroyedEvent } from '../events/EventTypes';
+import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent } from '../events/EventTypes';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -87,6 +87,18 @@ export class Game {
             
             // Trigger screen shake
             this.screenShake.shake(15, 0.3);
+        });
+        
+        // Listen for water collision events to trigger effects
+        GameEvents.on(EVENT_TYPES.PLAYER_WATER_COLLISION, (event: PlayerWaterCollisionEvent) => {
+            // Create water splash effect
+            this.particleSystem.createWaterSplash(event.playerPosition);
+            
+            // Trigger screen shake for water collision
+            this.screenShake.shake(8, 0.2);
+            
+            // Example: Easy to add new mechanics without touching collision detection
+            console.log('💦 Player hit water! Could add damage, fuel loss, or other mechanics here');
         });
     }
 
@@ -195,44 +207,6 @@ export class Game {
                 this.particleSystem.createDustParticles(dustPosition, enemy.velocity, 1);
             }
         });
-        
-        // Check collision with water obstacles
-        const waterCollision = this.desertWorld.checkWaterCollision(this.vehicle.position, vehicleRadius);
-        
-        if (waterCollision) {
-            // Create water splash effect!
-            this.particleSystem.createWaterSplash(this.vehicle.position);
-            this.screenShake.shake(8, 0.2); // Moderate shake for water collision
-            
-            // Calculate collision response vector
-            const collisionVector = this.vehicle.position.subtract(waterCollision.position);
-            const collisionDistance = collisionVector.length();
-            
-            if (collisionDistance > 0) {
-                // Normalize the collision vector
-                const collisionNormal = collisionVector.normalize();
-                
-                // Push the car away from the water
-                const overlap = vehicleRadius + waterCollision.radius - collisionDistance;
-                this.vehicle.position = this.vehicle.position.add(collisionNormal.multiply(overlap + 2));
-                
-                // Calculate bounce/skid effect
-                const velocityDotNormal = this.vehicle.velocity.x * collisionNormal.x + 
-                                        this.vehicle.velocity.y * collisionNormal.y;
-                
-                // Reflect velocity along the collision normal (bounce effect)
-                const reflectedVelocity = this.vehicle.velocity.subtract(
-                    collisionNormal.multiply(velocityDotNormal * 1.5)
-                );
-                
-                // Apply the bounced velocity with some damping
-                this.vehicle.velocity = reflectedVelocity.multiply(0.7); // Slightly less damping for water
-                this.vehicle.speed *= 0.7;
-                
-                // Update position based on new velocity to prevent sticking
-                this.vehicle.position = this.vehicle.position.add(this.vehicle.velocity.multiply(deltaTime));
-            }
-        }
         
         // Create driving dust particles when moving fast (behind the vehicle)
         if (this.vehicle.speed > 80) {

@@ -17,7 +17,8 @@ export const EVENT_TYPES = {
   
   // Collision events
   PLAYER_ENEMY_COLLISION: 'collision:player_enemy',
-  PLAYER_OBSTACLE_COLLISION: 'collision:player_obstacle',
+  PLAYER_WATER_COLLISION: 'collision:player_water',
+  PLAYER_ROCK_COLLISION: 'collision:player_rock',
   
   // Game state events
   GAME_STARTED: 'game:started',
@@ -53,12 +54,30 @@ export interface PlayerEnemyCollisionEvent {
   collisionPoint: Vector2D;
 }
 
-export interface PlayerObstacleCollisionEvent {
-  obstacleType: 'rock' | 'water';
-  obstaclePosition: Vector2D;
+export interface PlayerWaterCollisionEvent {
+  waterObstacle: {
+    position: Vector2D;
+    radius: number;
+  };
   playerPosition: Vector2D;
   playerVelocity: Vector2D;
   collisionPoint: Vector2D;
+  collisionVector: Vector2D;
+  collisionNormal: Vector2D;
+  overlap: number;
+}
+
+export interface PlayerRockCollisionEvent {
+  rockObstacle: {
+    position: Vector2D;
+    radius: number;
+  };
+  playerPosition: Vector2D;
+  playerVelocity: Vector2D;
+  collisionPoint: Vector2D;
+  collisionVector: Vector2D;
+  collisionNormal: Vector2D;
+  overlap: number;
 }
 
 export interface GameStateEvent {
@@ -73,5 +92,6 @@ export type GameEventData =
   | EnemyDestroyedEvent
   | EnemyEscapedEvent
   | PlayerEnemyCollisionEvent
-  | PlayerObstacleCollisionEvent
+  | PlayerWaterCollisionEvent
+  | PlayerRockCollisionEvent
   | GameStateEvent;

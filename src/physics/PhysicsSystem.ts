@@ -9,6 +9,8 @@
 import { Vector2D } from '../utils/Vector2D';
 import { DesertWorld } from '../world/DesertWorld';
 import { GAME_CONFIG } from '../config/GameConfig';
+import { GameEvents } from '../events/GameEvents';
+import { EVENT_TYPES, PlayerWaterCollisionEvent } from '../events/EventTypes';
 
 export interface PhysicsEntity {
   position: Vector2D;
@@ -58,6 +60,24 @@ export class PhysicsSystem {
     // Check water collisions (solid obstacles)
     const waterCollision = world.checkWaterCollision(newPosition, entityRadius);
     if (waterCollision) {
+      // Emit collision event for effects
+      const collisionVector = entity.position.subtract(waterCollision.position);
+      const collisionNormal = collisionVector.normalize();
+      const overlap = entityRadius + waterCollision.radius - collisionVector.length();
+      
+      GameEvents.emit(EVENT_TYPES.PLAYER_WATER_COLLISION, {
+        waterObstacle: {
+          position: waterCollision.position,
+          radius: waterCollision.radius
+        },
+        playerPosition: entity.position,
+        playerVelocity: entity.velocity,
+        collisionPoint: entity.position,
+        collisionVector: collisionVector,
+        collisionNormal: collisionNormal,
+        overlap: overlap
+      } as PlayerWaterCollisionEvent);
+      
       this.handleSolidCollision(entity, waterCollision.position, config);
       return;
     }
