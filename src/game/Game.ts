@@ -86,7 +86,7 @@ export class Game {
             const blueCarImage = this.assetManager.getImage('car_blue');
             if (blueCarImage) {
                 const banditSprite = new CarSprite(blueCarImage);
-                this.enemyManager.setBanditSprite(banditSprite);
+                this.enemyManager.setEnemySprite('water_bandit', banditSprite);
             }
             
             // Set up desert world sprites
@@ -161,14 +161,14 @@ export class Game {
             this.particleSystem.createDestructionParticles(enemy.position, enemy.velocity);
             this.screenShake.shake(15, 0.3); // Intense shake for enemy destruction
             
-            this.enemyManager.destroyBandit(enemy);
+            this.enemyManager.destroyEnemy(enemy);
         }
         
         // Add tire tracks for player
         this.tireTrackSystem.addTracks('player', this.vehicle.position, this.vehicle.angle, this.vehicle.speed, 'player');
         
         // Add tire tracks for enemies and dust effects
-        const activeEnemies = this.enemyManager.getActiveBandits();
+        const activeEnemies = this.enemyManager.getActiveEnemies('water_bandit');
         activeEnemies.forEach((enemy, index) => {
             this.tireTrackSystem.addTracks(`enemy_${index}`, enemy.position, enemy.angle, enemy.speed, 'bandit');
             
@@ -264,7 +264,7 @@ export class Game {
         // Render debug overlays in world space (before restoring context)
         this.debugRenderer.renderWorldDebug(
             this.ctx,
-            this.enemyManager.getActiveBandits(),
+            this.enemyManager.getActiveEnemies('water_bandit'),
             this.desertWorld.getWaterObstacles(),
             this.vehicle,
             this.camera.position.x,
@@ -289,7 +289,7 @@ export class Game {
         this.renderDebugInfo();
         
         // Render debug UI overlays (not affected by camera)
-        this.debugRenderer.renderUIDebug(this.ctx, this.enemyManager.getActiveBandits(), this.vehicle);
+        this.debugRenderer.renderUIDebug(this.ctx, this.enemyManager.getActiveEnemies('water_bandit'), this.vehicle);
     }
 
     private renderDebugInfo(): void {

@@ -70,13 +70,6 @@ export class EnemyManager {
     }
   }
   
-  /**
-   * Legacy method to maintain compatibility with existing code
-   */
-  setBanditSprite(sprite: CarSprite): void {
-    this.setEnemySprite('water_bandit', sprite);
-  }
-  
   update(deltaTime: number): void {
     // Update each enemy type
     for (const [entityId, manager] of this.enemyTypes.entries()) {
@@ -209,13 +202,6 @@ export class EnemyManager {
   }
   
   /**
-   * Legacy method to maintain compatibility
-   */
-  destroyBandit(bandit: BaseEntity): void {
-    this.destroyEnemy(bandit);
-  }
-  
-  /**
    * Get count of active enemies for a specific type
    */
   getActiveEnemies(entityId: string): BaseEntity[] {
@@ -223,13 +209,6 @@ export class EnemyManager {
     if (!manager) return [];
     
     return manager.enemies.filter(enemy => enemy.getIsAlive());
-  }
-  
-  /**
-   * Legacy method to maintain compatibility with existing code
-   */
-  getActiveBandits(): BaseEntity[] {
-    return this.getActiveEnemies('water_bandit');
   }
   
   /**
@@ -241,14 +220,6 @@ export class EnemyManager {
       allEnemies.push(...manager.enemies);
     }
     return allEnemies;
-  }
-  
-  /**
-   * Legacy method to maintain compatibility
-   */
-  getAllBandits(): BaseEntity[] {
-    const manager = this.enemyTypes.get('water_bandit');
-    return manager ? manager.enemies : [];
   }
   
   /**
