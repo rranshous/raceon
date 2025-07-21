@@ -20,6 +20,9 @@ export class WaterBanditEntity implements BaseEntity, PhysicsEntity {
   public isAlive: boolean = true;
   public entityDefinition: EntityDefinition;
   
+  // Entity type for physics system
+  public readonly entityType = 'enemy' as const;
+  
   private behavior: EntityBehavior | null = null;
   
   constructor(definition: EntityDefinition, startPosition: Vector2D, escapeTarget: Vector2D) {
@@ -95,6 +98,7 @@ export class WaterBanditEntity implements BaseEntity, PhysicsEntity {
       velocity: new Vector2D(0, 0),
       speed: 0,
       angle: 0,
+      entityType: 'player' as const,
       getWidth: () => playerRadius * 2,
       getHeight: () => playerRadius * 2
     };

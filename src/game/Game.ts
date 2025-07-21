@@ -13,7 +13,7 @@ import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
 import { GameEvents } from '../events/GameEvents';
-import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent } from '../events/EventTypes';
+import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent } from '../events/EventTypes';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -99,6 +99,13 @@ export class Game {
             
             // Example: Easy to add new mechanics without touching collision detection
             console.log('💦 Player hit water! Could add damage, fuel loss, or other mechanics here');
+        });
+        
+        // Listen for enemy water collisions (separate from player)
+        GameEvents.on(EVENT_TYPES.ENEMY_WATER_COLLISION, (event: EnemyWaterCollisionEvent) => {
+            // Different effects for enemies hitting water
+            // Could trigger AI behavior changes, different particles, etc.
+            console.log(`🤖 Enemy ${event.enemy.constructor.name} hit water! Could change AI behavior, create smaller splash, etc.`);
         });
     }
 

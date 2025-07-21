@@ -10,7 +10,7 @@ import { Vector2D } from '../utils/Vector2D';
 import { DesertWorld } from '../world/DesertWorld';
 import { GAME_CONFIG } from '../config/GameConfig';
 import { GameEvents } from '../events/GameEvents';
-import { EVENT_TYPES, PlayerWaterCollisionEvent } from '../events/EventTypes';
+import { EVENT_TYPES, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent } from '../events/EventTypes';
 
 export interface PhysicsEntity {
   position: Vector2D;
@@ -19,6 +19,9 @@ export interface PhysicsEntity {
   angle: number;
   getWidth(): number;
   getHeight(): number;
+  
+  // Entity type for upstream event filtering
+  readonly entityType: 'player' | 'enemy';
 }
 
 export interface PhysicsConfig {
@@ -60,23 +63,40 @@ export class PhysicsSystem {
     // Check water collisions (solid obstacles)
     const waterCollision = world.checkWaterCollision(newPosition, entityRadius);
     if (waterCollision) {
-      // Emit collision event for effects
+      // Calculate collision data once
       const collisionVector = entity.position.subtract(waterCollision.position);
       const collisionNormal = collisionVector.normalize();
       const overlap = entityRadius + waterCollision.radius - collisionVector.length();
       
-      GameEvents.emit(EVENT_TYPES.PLAYER_WATER_COLLISION, {
-        waterObstacle: {
-          position: waterCollision.position,
-          radius: waterCollision.radius
-        },
-        playerPosition: entity.position,
-        playerVelocity: entity.velocity,
-        collisionPoint: entity.position,
-        collisionVector: collisionVector,
-        collisionNormal: collisionNormal,
-        overlap: overlap
-      } as PlayerWaterCollisionEvent);
+      // Upstream filtering: emit specific events based on entity type
+      if (entity.entityType === 'player') {
+        GameEvents.emit(EVENT_TYPES.PLAYER_WATER_COLLISION, {
+          waterObstacle: {
+            position: waterCollision.position,
+            radius: waterCollision.radius
+          },
+          playerPosition: entity.position,
+          playerVelocity: entity.velocity,
+          collisionPoint: entity.position,
+          collisionVector: collisionVector,
+          collisionNormal: collisionNormal,
+          overlap: overlap
+        } as PlayerWaterCollisionEvent);
+      } else if (entity.entityType === 'enemy') {
+        GameEvents.emit(EVENT_TYPES.ENEMY_WATER_COLLISION, {
+          enemy: entity as any, // Cast needed since PhysicsEntity doesn't extend BaseEntity
+          waterObstacle: {
+            position: waterCollision.position,
+            radius: waterCollision.radius
+          },
+          enemyPosition: entity.position,
+          enemyVelocity: entity.velocity,
+          collisionPoint: entity.position,
+          collisionVector: collisionVector,
+          collisionNormal: collisionNormal,
+          overlap: overlap
+        } as EnemyWaterCollisionEvent);
+      }
       
       this.handleSolidCollision(entity, waterCollision.position, config);
       return;

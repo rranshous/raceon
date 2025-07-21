@@ -12,6 +12,9 @@ export class Vehicle implements PhysicsEntity {
     public speed: number = 0;
     public sprite: CarSprite | null = null;
     
+    // Entity type for physics system
+    public readonly entityType = 'player' as const;
+    
     // Vehicle properties (from config)
     private maxSpeed: number = GAME_CONFIG.VEHICLE.MAX_SPEED;
     private acceleration: number = GAME_CONFIG.VEHICLE.ACCELERATION;
