@@ -10,7 +10,7 @@ import { Vector2D } from '../utils/Vector2D';
 import { DesertWorld } from '../world/DesertWorld';
 import { GAME_CONFIG } from '../config/GameConfig';
 import { GameEvents } from '../events/GameEvents';
-import { EVENT_TYPES, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent } from '../events/EventTypes';
+import { EVENT_TYPES, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent, PlayerRockCollisionEvent, EnemyRockCollisionEvent } from '../events/EventTypes';
 
 export interface PhysicsEntity {
   position: Vector2D;
@@ -56,6 +56,41 @@ export class PhysicsSystem {
     // Check rock collisions (solid obstacles)
     const rockCollision = world.checkRockCollision(newPosition, entityRadius);
     if (rockCollision) {
+      // Calculate collision data once
+      const collisionVector = entity.position.subtract(rockCollision.position);
+      const collisionNormal = collisionVector.normalize();
+      const overlap = entityRadius + rockCollision.radius - collisionVector.length();
+      
+      // Upstream filtering: emit specific events based on entity type
+      if (entity.entityType === 'player') {
+        GameEvents.emit(EVENT_TYPES.PLAYER_ROCK_COLLISION, {
+          rockObstacle: {
+            position: rockCollision.position,
+            radius: rockCollision.radius
+          },
+          playerPosition: entity.position,
+          playerVelocity: entity.velocity,
+          collisionPoint: entity.position,
+          collisionVector: collisionVector,
+          collisionNormal: collisionNormal,
+          overlap: overlap
+        } as PlayerRockCollisionEvent);
+      } else if (entity.entityType === 'enemy') {
+        GameEvents.emit(EVENT_TYPES.ENEMY_ROCK_COLLISION, {
+          enemy: entity as any, // Cast needed since PhysicsEntity doesn't extend BaseEntity
+          rockObstacle: {
+            position: rockCollision.position,
+            radius: rockCollision.radius
+          },
+          enemyPosition: entity.position,
+          enemyVelocity: entity.velocity,
+          collisionPoint: entity.position,
+          collisionVector: collisionVector,
+          collisionNormal: collisionNormal,
+          overlap: overlap
+        } as EnemyRockCollisionEvent);
+      }
+      
       this.handleSolidCollision(entity, rockCollision.position, config);
       return;
     }

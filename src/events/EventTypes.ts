@@ -28,6 +28,7 @@ export const EVENT_TYPES = {
   GAME_STARTED: 'game:started',
   GAME_PAUSED: 'game:paused',
   GAME_RESUMED: 'game:resumed',
+  DEBUG_MODE_TOGGLED: 'debug:mode_toggled',
 } as const;
 
 // Event data interfaces
@@ -118,6 +119,12 @@ export interface GameStateEvent {
   newState: string;
 }
 
+export interface DebugModeToggledEvent {
+  enabled: boolean;
+  timestamp: number;
+  previousMode: boolean;
+}
+
 // Union type of all event data
 export type GameEventData = 
   | EnemySpawnedEvent
@@ -128,4 +135,5 @@ export type GameEventData =
   | PlayerRockCollisionEvent
   | EnemyWaterCollisionEvent
   | EnemyRockCollisionEvent
-  | GameStateEvent;
+  | GameStateEvent
+  | DebugModeToggledEvent;

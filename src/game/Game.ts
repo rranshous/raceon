@@ -13,7 +13,7 @@ import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
 import { GameEvents } from '../events/GameEvents';
-import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent } from '../events/EventTypes';
+import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent, PlayerRockCollisionEvent, EnemyRockCollisionEvent, DebugModeToggledEvent } from '../events/EventTypes';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -107,6 +107,31 @@ export class Game {
             // Could trigger AI behavior changes, different particles, etc.
             console.log(`🤖 Enemy ${event.enemy.constructor.name} hit water! Could change AI behavior, create smaller splash, etc.`);
         });
+        
+        // Listen for player rock collisions
+        GameEvents.on(EVENT_TYPES.PLAYER_ROCK_COLLISION, (event: PlayerRockCollisionEvent) => {
+            // Create rock collision effects
+            // Could be different from water - sparks, different particles, different shake intensity
+            this.screenShake.shake(12, 0.25); // Slightly different from water collision
+            
+            console.log(`🪨 Player hit rock at ${event.rockObstacle.position.x}, ${event.rockObstacle.position.y}! Could add sparks, metal scraping sounds, vehicle damage, etc.`);
+        });
+        
+        // Listen for enemy rock collisions (separate from player)
+        GameEvents.on(EVENT_TYPES.ENEMY_ROCK_COLLISION, (event: EnemyRockCollisionEvent) => {
+            // Different effects for enemies hitting rocks
+            // Could trigger different AI responses, less dramatic effects
+            console.log(`🤖 Enemy ${event.enemy.constructor.name} hit rock! Could change AI pathfinding, create dust, etc.`);
+        });
+        
+        // Listen for debug mode toggle events
+        GameEvents.on(EVENT_TYPES.DEBUG_MODE_TOGGLED, (event: DebugModeToggledEvent) => {
+            // Easy to add new debug mode behaviors
+            console.log(`🛠️ Debug mode ${event.enabled ? 'ENABLED' : 'DISABLED'} at ${event.timestamp.toFixed(2)}ms`);
+            
+            // Example: Could trigger debug UI changes, logging level changes, etc.
+            // Could also notify other systems that debug mode changed
+        });
     }
 
     private async loadAssets(): Promise<void> {
@@ -177,7 +202,16 @@ export class Game {
         
         // Handle debug toggle
         if (this.inputManager.isDebugTogglePressed()) {
+            const previousMode = this.debugRenderer.isDebugEnabled();
             this.debugRenderer.toggle();
+            const newMode = this.debugRenderer.isDebugEnabled();
+            
+            // Emit debug mode toggle event
+            GameEvents.emit(EVENT_TYPES.DEBUG_MODE_TOGGLED, {
+                enabled: newMode,
+                timestamp: performance.now(),
+                previousMode: previousMode
+            } as DebugModeToggledEvent);
         }
         
         // Update vehicle
