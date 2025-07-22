@@ -329,22 +329,72 @@ The goal is to **remove friction** from trying these ideas, not lock into any sp
   - All entities (player + enemies) have identical collision/terrain physics
   - Foundation ready for quick content expansion
 
-### ✅ 3. Event System Foundation ⭐ STARTING NOW
+### ✅ 3. Event System Foundation ⭐ COMPLETED WITH UPSTREAM FILTERING
 **Why**: Decouple features for easy experimentation - TRUE REFACTORING
 **Risk**: Medium  
-**Status**: 🔨 IN PROGRESS
+**Status**: ✅ COMPLETED & UPSTREAM FILTERING IMPLEMENTED
 **Goal**: Loose coupling between game systems via pub/sub events
 **Steps**:
-1. **Simple Event System** - Basic pub/sub without over-engineering
-2. **Convert Existing Interactions** - Player-enemy collisions, destruction, spawning
-3. **Decouple Effects** - Particles, screen shake, tire tracks respond to events
-4. **Verify Identical Behavior** - All existing functionality preserved
+1. ✅ **Simple Event System** - Basic pub/sub without over-engineering
+2. ✅ **Convert Existing Interactions** - Player-enemy collisions, destruction, spawning
+3. ✅ **Decouple Effects** - Particles, screen shake, tire tracks respond to events
+4. ✅ **Verify Identical Behavior** - All existing functionality preserved
+5. ✅ **Upstream Filtering** - Emit specific events (PLAYER_WATER_COLLISION vs ENEMY_WATER_COLLISION)
 
-**Refactoring Benefits**:
-- Systems no longer directly depend on each other
-- Easy to add new reactions to existing events
-- Clear separation of concerns (physics vs effects vs UI)
-- Foundation for any future gameplay additions
+**Refactoring Benefits Achieved**:
+- ✅ Systems no longer directly depend on each other
+- ✅ Easy to add new reactions to existing events
+- ✅ Clear separation of concerns (physics vs effects vs UI)
+- ✅ Foundation for any future gameplay additions
+- ✅ **Performance Optimized**: O(1) upstream filtering vs O(n) downstream filtering
+- ✅ **Bug Fixed**: Screen shake no longer triggers for enemy collisions
+
+**Results**:
+- ✅ **Enemy lifecycle events**: spawn/destroy/escape with proper listeners
+- ✅ **Water collision events**: separate player vs enemy collision handling
+- ✅ **Upstream event filtering**: PhysicsSystem emits entity-specific events
+- ✅ **Entity type identification**: entityType property added to all physics entities
+- ✅ **Clean event listeners**: No conditional filtering needed in Game.ts
+
+### 🔧 4. Configuration Drift Fix ⭐ DISCOVERED - NEEDS ADDRESSING
+**Why**: Complete the configuration extraction refactoring
+**Risk**: Low
+**Status**: 📋 TODO - Configuration values exist but aren't being used
+**Goal**: Make effect systems actually use the centralized config values
+
+**Configuration Drift Discovered**:
+```typescript
+// Config values that exist but are UNUSED:
+GAME_CONFIG.EFFECTS = {
+  PARTICLES: {
+    MAX_COUNT: 200,                    // ❌ ParticleSystem uses hardcoded 200
+    DUST_SPEED_THRESHOLD: 80,          // ❌ Game.ts uses hardcoded 80
+  },
+  TIRE_TRACKS: {
+    MAX_COUNT: 500,                    // ❌ TireTrackSystem uses hardcoded 500
+    SPEED_THRESHOLD: 30,               // ❌ TireTrackSystem uses hardcoded 10
+    ALPHA_DECAY: 0.02,                 // ❌ Not used anywhere
+    SEGMENT_DISTANCE: 10,              // ❌ TireTrackSystem uses hardcoded 8
+  },
+  SCREEN_SHAKE: {
+    COLLISION_INTENSITY: 10,           // ❌ Game.ts uses hardcoded 8
+    DESTRUCTION_INTENSITY: 15,         // ❌ Game.ts uses hardcoded 15 (matches!)
+    DECAY_RATE: 20                     // ❌ Not used anywhere
+  }
+};
+```
+
+**Files Needing Config Integration**:
+- `src/effects/ParticleSystem.ts` - Import and use GAME_CONFIG.EFFECTS.PARTICLES
+- `src/effects/TireTrackSystem.ts` - Import and use GAME_CONFIG.EFFECTS.TIRE_TRACKS  
+- `src/effects/ScreenShake.ts` - Import and use GAME_CONFIG.EFFECTS.SCREEN_SHAKE
+- `src/game/Game.ts` - Use config values for speed thresholds and shake intensities
+
+**Benefits When Fixed**:
+- ✅ Complete configuration extraction (no more hardcoded effect values)
+- ✅ Easy effect tuning without code changes
+- ✅ Consistent configuration patterns across all systems
+- ✅ Foundation ready for runtime game tweaker (if needed later)
 
 ### ~~3. Runtime Game Tweaker~~ ⭐ SKIPPED - NOT REFACTORING
 **Why Skipped**: This is feature development, not architectural improvement
