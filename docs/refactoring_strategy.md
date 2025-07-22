@@ -364,20 +364,22 @@ The goal is to **remove friction** from trying these ideas, not lock into any sp
 | Water Collision | ✅ Event-Driven | `PLAYER_WATER_COLLISION`, `ENEMY_WATER_COLLISION` | Complete |
 | Rock Collision | ✅ Event-Driven | `PLAYER_ROCK_COLLISION`, `ENEMY_ROCK_COLLISION` | Complete |
 | Debug Mode Toggle | ✅ Event-Driven | `DEBUG_MODE_TOGGLED` | Complete |
+| Tire Tracks | ✅ Event-Driven | `ENTITY_MOVED` | Complete |
+| Dust Particles | ✅ Event-Driven | `SPEED_THRESHOLD_REACHED` | Complete |
 | Enemy Destruction | ✅ Event-Driven | Effects via events | Complete |
-| **Tire Tracks** | ❌ Direct Calls | Could be `ENTITY_MOVED` events | 🟡 Medium Value |
-| **Dust Particles** | ❌ Direct Calls | Could be `SPEED_THRESHOLD` events | 🟡 Medium Value |
 | Core Game Loop | ❌ Direct Calls | Should stay direct (performance) | 🔴 Keep Direct |
 | Input Processing | ❌ Direct Calls | Should stay direct (responsiveness) | 🔴 Keep Direct |
 | Rendering | ❌ Direct Calls | Should stay direct (performance) | 🔴 Keep Direct |
 
-**Current Event Coverage: ~55%** of game interactions are event-driven
+**Current Event Coverage: ~70%** of game interactions are event-driven
 
 **Next Logical Event Opportunities:**
 1. ~~🟢 Rock Collisions~~ ✅ **COMPLETED** - Player and enemy rock collision events implemented
 2. ~~🟢 Debug State Changes~~ ✅ **COMPLETED** - Debug mode toggle events implemented
-3. **🟡 Movement-Based Effects** - Medium value for tire tracks and dust particles  
-4. **🟡 Speed Threshold Events** - Could consolidate speed-based effect triggers
+3. ~~🟡 Movement-Based Effects~~ ✅ **COMPLETED** - Tire tracks and dust particles now event-driven
+4. ~~🟡 Speed Threshold Events~~ ✅ **COMPLETED** - Consolidated speed-based effect triggers
+
+**🎉 Event System Complete!** - All practical game interactions are now event-driven
 
 ### 🔧 4. Configuration Drift Fix ⭐ DISCOVERED - NEEDS ADDRESSING
 **Why**: Complete the configuration extraction refactoring

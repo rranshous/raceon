@@ -13,7 +13,7 @@ import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
 import { GameEvents } from '../events/GameEvents';
-import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent, PlayerRockCollisionEvent, EnemyRockCollisionEvent, DebugModeToggledEvent } from '../events/EventTypes';
+import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent, PlayerRockCollisionEvent, EnemyRockCollisionEvent, DebugModeToggledEvent, EntityMovedEvent, SpeedThresholdReachedEvent } from '../events/EventTypes';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -132,6 +132,22 @@ export class Game {
             // Example: Could trigger debug UI changes, logging level changes, etc.
             // Could also notify other systems that debug mode changed
         });
+        
+        // Listen for entity movement events to trigger tire tracks
+        GameEvents.on(EVENT_TYPES.ENTITY_MOVED, (event: EntityMovedEvent) => {
+            // Add tire tracks for all moving entities
+            const vehicleType = event.entityType === 'player' ? 'player' : 'bandit';
+            this.tireTrackSystem.addTracks(event.entityId, event.position, event.angle, event.speed, vehicleType);
+        });
+        
+        // Listen for speed threshold events to trigger dust particles
+        GameEvents.on(EVENT_TYPES.SPEED_THRESHOLD_REACHED, (event: SpeedThresholdReachedEvent) => {
+            // Create dust particles for fast-moving entities
+            const particleCount = event.entityType === 'player' ? 2 : 1;
+            this.particleSystem.createDustParticles(event.dustPosition, event.velocity, particleCount);
+            
+            console.log(`💨 ${event.entityType} reached speed threshold ${event.threshold} at ${event.speed.toFixed(1)} speed`);
+        });
     }
 
     private async loadAssets(): Promise<void> {
@@ -233,29 +249,63 @@ export class Game {
             this.enemyManager.destroyEnemy(enemy);
         }
         
-        // Add tire tracks for player
-        this.tireTrackSystem.addTracks('player', this.vehicle.position, this.vehicle.angle, this.vehicle.speed, 'player');
+        // Emit entity movement events
+        GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
+            entityId: 'player',
+            entityType: 'player',
+            position: this.vehicle.position,
+            angle: this.vehicle.angle,
+            speed: this.vehicle.speed,
+            velocity: this.vehicle.velocity
+        } as EntityMovedEvent);
         
-        // Add tire tracks for enemies and dust effects
+        // Emit speed threshold events for player
+        if (this.vehicle.speed > 80) {
+            const backOffset = new Vector2D(-Math.cos(this.vehicle.angle), -Math.sin(this.vehicle.angle)).multiply(15);
+            const dustPosition = this.vehicle.position.add(backOffset);
+            
+            GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
+                entityId: 'player',
+                entityType: 'player',
+                position: this.vehicle.position,
+                angle: this.vehicle.angle,
+                speed: this.vehicle.speed,
+                velocity: this.vehicle.velocity,
+                threshold: 80,
+                dustPosition: dustPosition
+            } as SpeedThresholdReachedEvent);
+        }
+        
+        // Emit movement events for enemies
         const activeEnemies = this.enemyManager.getActiveEnemies('water_bandit');
         activeEnemies.forEach((enemy, index) => {
-            this.tireTrackSystem.addTracks(`enemy_${index}`, enemy.position, enemy.angle, enemy.speed, 'bandit');
+            // Emit entity movement event
+            GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
+                entityId: `enemy_${index}`,
+                entityType: 'enemy',
+                position: enemy.position,
+                angle: enemy.angle,
+                speed: enemy.speed,
+                velocity: enemy.velocity
+            } as EntityMovedEvent);
             
-            // Add dust trails for enemies when moving fast
+            // Emit speed threshold event for enemies moving fast
             if (enemy.speed > 70) {
                 const backOffset = new Vector2D(-Math.cos(enemy.angle), -Math.sin(enemy.angle)).multiply(12);
                 const dustPosition = enemy.position.add(backOffset);
-                this.particleSystem.createDustParticles(dustPosition, enemy.velocity, 1);
+                
+                GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
+                    entityId: `enemy_${index}`,
+                    entityType: 'enemy',
+                    position: enemy.position,
+                    angle: enemy.angle,
+                    speed: enemy.speed,
+                    velocity: enemy.velocity,
+                    threshold: 70,
+                    dustPosition: dustPosition
+                } as SpeedThresholdReachedEvent);
             }
         });
-        
-        // Create driving dust particles when moving fast (behind the vehicle)
-        if (this.vehicle.speed > 80) {
-            // Calculate position behind the vehicle
-            const backOffset = new Vector2D(-Math.cos(this.vehicle.angle), -Math.sin(this.vehicle.angle)).multiply(15);
-            const dustPosition = this.vehicle.position.add(backOffset);
-            this.particleSystem.createDustParticles(dustPosition, this.vehicle.velocity, 2);
-        }
         
         // Update effect systems
         this.screenShake.update(deltaTime);

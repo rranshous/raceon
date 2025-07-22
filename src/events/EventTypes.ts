@@ -24,6 +24,10 @@ export const EVENT_TYPES = {
   ENEMY_WATER_COLLISION: 'collision:enemy_water',
   ENEMY_ROCK_COLLISION: 'collision:enemy_rock',
   
+  // Movement events
+  ENTITY_MOVED: 'movement:entity_moved',
+  SPEED_THRESHOLD_REACHED: 'movement:speed_threshold_reached',
+  
   // Game state events
   GAME_STARTED: 'game:started',
   GAME_PAUSED: 'game:paused',
@@ -125,6 +129,26 @@ export interface DebugModeToggledEvent {
   previousMode: boolean;
 }
 
+export interface EntityMovedEvent {
+  entityId: string;
+  entityType: 'player' | 'enemy';
+  position: Vector2D;
+  angle: number;
+  speed: number;
+  velocity: Vector2D;
+}
+
+export interface SpeedThresholdReachedEvent {
+  entityId: string;
+  entityType: 'player' | 'enemy';
+  position: Vector2D;
+  angle: number;
+  speed: number;
+  velocity: Vector2D;
+  threshold: number;
+  dustPosition: Vector2D; // Pre-calculated position behind the entity
+}
+
 // Union type of all event data
 export type GameEventData = 
   | EnemySpawnedEvent
@@ -136,4 +160,6 @@ export type GameEventData =
   | EnemyWaterCollisionEvent
   | EnemyRockCollisionEvent
   | GameStateEvent
-  | DebugModeToggledEvent;
+  | DebugModeToggledEvent
+  | EntityMovedEvent
+  | SpeedThresholdReachedEvent;
