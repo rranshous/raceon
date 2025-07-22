@@ -381,45 +381,56 @@ The goal is to **remove friction** from trying these ideas, not lock into any sp
 
 **🎉 Event System Complete!** - All practical game interactions are now event-driven
 
-### 🔧 4. Configuration Drift Fix ⭐ DISCOVERED - NEEDS ADDRESSING
+### 🔧 4. Configuration Drift Fix ✅ **COMPLETED**
 **Why**: Complete the configuration extraction refactoring
 **Risk**: Low
-**Status**: 📋 TODO - Configuration values exist but aren't being used
+**Status**: ✅ **COMPLETED** - All effect systems now use centralized config values
 **Goal**: Make effect systems actually use the centralized config values
 
-**Configuration Drift Discovered**:
+**Configuration Integration Results**:
 ```typescript
-// Config values that exist but are UNUSED:
+// All config values now PROPERLY USED:
 GAME_CONFIG.EFFECTS = {
   PARTICLES: {
-    MAX_COUNT: 200,                    // ❌ ParticleSystem uses hardcoded 200
-    DUST_SPEED_THRESHOLD: 80,          // ❌ Game.ts uses hardcoded 80
+    MAX_COUNT: 200,                    // ✅ ParticleSystem.maxParticles
+    DUST_SPEED_THRESHOLD: 80,          // ✅ Game.ts speed threshold checks
+    COLLISION_PARTICLE_COUNT: 15,      // ✅ ParticleSystem.createWaterSplash()
+    DESTRUCTION_PARTICLE_COUNT: 25     // ✅ ParticleSystem.createDestructionParticles()
   },
   TIRE_TRACKS: {
-    MAX_COUNT: 500,                    // ❌ TireTrackSystem uses hardcoded 500
-    SPEED_THRESHOLD: 30,               // ❌ TireTrackSystem uses hardcoded 10
-    ALPHA_DECAY: 0.02,                 // ❌ Not used anywhere
-    SEGMENT_DISTANCE: 10,              // ❌ TireTrackSystem uses hardcoded 8
+    MAX_COUNT: 500,                    // ✅ TireTrackSystem.maxTracks
+    SPEED_THRESHOLD: 30,               // ✅ TireTrackSystem.addTracks()
+    SEGMENT_DISTANCE: 10,              // ✅ TireTrackSystem.trackSpacing
+    ALPHA_DECAY: 0.02                  // ⚠️ Available for alpha-based fading (time-based used instead)
   },
   SCREEN_SHAKE: {
-    COLLISION_INTENSITY: 10,           // ❌ Game.ts uses hardcoded 8
-    DESTRUCTION_INTENSITY: 15,         // ❌ Game.ts uses hardcoded 15 (matches!)
-    DECAY_RATE: 20                     // ❌ Not used anywhere
+    COLLISION_INTENSITY: 10,           // ✅ Game.ts water/rock collision shake
+    DESTRUCTION_INTENSITY: 15,         // ✅ Game.ts enemy destruction shake
+    DECAY_RATE: 0.9                    // ✅ ScreenShake.shakeDecay (fixed: was 20, now 0.9)
   }
+};
+
+GAME_CONFIG.PHYSICS = {
+  WATER_COLLISION_RADIUS_MULTIPLIER: 0.5,  // ✅ DesertWorld.checkWaterCollision()
+  ROCK_COLLISION_RADIUS_MULTIPLIER: 0.5,   // ✅ DesertWorld.checkRockCollision()
+  VEHICLE_RADIUS_MULTIPLIER: 0.5           // ✅ PhysicsSystem (already used)
 };
 ```
 
-**Files Needing Config Integration**:
-- `src/effects/ParticleSystem.ts` - Import and use GAME_CONFIG.EFFECTS.PARTICLES
-- `src/effects/TireTrackSystem.ts` - Import and use GAME_CONFIG.EFFECTS.TIRE_TRACKS  
-- `src/effects/ScreenShake.ts` - Import and use GAME_CONFIG.EFFECTS.SCREEN_SHAKE
-- `src/game/Game.ts` - Use config values for speed thresholds and shake intensities
+**Files Successfully Updated**:
+- ✅ `src/effects/ParticleSystem.ts` - Uses GAME_CONFIG.EFFECTS.PARTICLES
+- ✅ `src/effects/TireTrackSystem.ts` - Uses GAME_CONFIG.EFFECTS.TIRE_TRACKS  
+- ✅ `src/effects/ScreenShake.ts` - Uses GAME_CONFIG.EFFECTS.SCREEN_SHAKE
+- ✅ `src/game/Game.ts` - Uses config values for speed thresholds and shake intensities
+- ✅ `src/world/DesertWorld.ts` - Uses physics collision radius multipliers
+- ✅ `src/config/GameConfig.ts` - Fixed screen shake decay rate bug (20 → 0.9)
 
-**Benefits When Fixed**:
+**Benefits Achieved**:
 - ✅ Complete configuration extraction (no more hardcoded effect values)
 - ✅ Easy effect tuning without code changes
 - ✅ Consistent configuration patterns across all systems
 - ✅ Foundation ready for runtime game tweaker (if needed later)
+- ✅ Bug fix: Screen shake blackout issue resolved
 
 ### ~~3. Runtime Game Tweaker~~ ⭐ SKIPPED - NOT REFACTORING
 **Why Skipped**: This is feature development, not architectural improvement

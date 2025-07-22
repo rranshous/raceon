@@ -74,6 +74,15 @@ A browser-based combat racing game, built with TypeScript and HTML5 Canvas.
 - **Minimum speed floor**: Never get completely stuck - maintain 20% forward, 10% reverse speed
 - **Strategic navigation**: Terrain choice affects performance and route planning
 
+### Phase 11: Configuration-Driven Architecture 🔧
+**Key Commit**: [Config Integration Complete: All Effect & Physics Values Now Configurable](https://github.com/rranshous/raceon/commit/latest)
+- **Complete config integration**: All hardcoded values replaced with centralized configuration
+- **Effect system tuning**: Particle counts, screen shake intensities, tire track settings all configurable
+- **Physics customization**: Collision radius multipliers, terrain effects, speed thresholds via config
+- **Critical bug fix**: Screen shake blackout issue resolved (decay rate corrected)
+- **Rapid iteration**: Easy gameplay balancing without code changes
+- **Foundation for upgrades**: Config structure ready for vehicle progression systems
+
 ## 🎯 What We've Built
 
 - **Smooth vehicle physics** with realistic driving feel
@@ -93,6 +102,7 @@ A browser-based combat racing game, built with TypeScript and HTML5 Canvas.
 - **Visual bandit tracking** - follow tire tracks to hunt down escaping water thieves
 - **Cinematic feedback** - every collision and action has satisfying visual impact
 - **Strategic terrain navigation** - route planning based on ground type resistance
+- **Configuration-driven gameplay** - easy tuning of all effect, physics, and gameplay parameters
 - **Modular architecture** ready for expansion
 
 ## 🛠️ Development Tools
