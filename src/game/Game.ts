@@ -14,6 +14,7 @@ import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
 import { GameEvents } from '../events/GameEvents';
 import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent, PlayerRockCollisionEvent, EnemyRockCollisionEvent, DebugModeToggledEvent, EntityMovedEvent, SpeedThresholdReachedEvent } from '../events/EventTypes';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -86,7 +87,7 @@ export class Game {
             this.particleSystem.createDestructionParticles(event.position, event.velocity);
             
             // Trigger screen shake
-            this.screenShake.shake(15, 0.3);
+            this.screenShake.shake(GAME_CONFIG.EFFECTS.SCREEN_SHAKE.DESTRUCTION_INTENSITY, 0.3);
         });
         
         // Listen for water collision events to trigger effects
@@ -95,7 +96,7 @@ export class Game {
             this.particleSystem.createWaterSplash(event.playerPosition);
             
             // Trigger screen shake for water collision
-            this.screenShake.shake(8, 0.2);
+            this.screenShake.shake(GAME_CONFIG.EFFECTS.SCREEN_SHAKE.COLLISION_INTENSITY, 0.2);
             
             // Example: Easy to add new mechanics without touching collision detection
             console.log('💦 Player hit water! Could add damage, fuel loss, or other mechanics here');
@@ -112,7 +113,7 @@ export class Game {
         GameEvents.on(EVENT_TYPES.PLAYER_ROCK_COLLISION, (event: PlayerRockCollisionEvent) => {
             // Create rock collision effects
             // Could be different from water - sparks, different particles, different shake intensity
-            this.screenShake.shake(12, 0.25); // Slightly different from water collision
+            this.screenShake.shake(GAME_CONFIG.EFFECTS.SCREEN_SHAKE.COLLISION_INTENSITY, 0.25); // Slightly different from water collision
             
             console.log(`🪨 Player hit rock at ${event.rockObstacle.position.x}, ${event.rockObstacle.position.y}! Could add sparks, metal scraping sounds, vehicle damage, etc.`);
         });
@@ -260,7 +261,7 @@ export class Game {
         } as EntityMovedEvent);
         
         // Emit speed threshold events for player
-        if (this.vehicle.speed > 80) {
+        if (this.vehicle.speed > GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD) {
             const backOffset = new Vector2D(-Math.cos(this.vehicle.angle), -Math.sin(this.vehicle.angle)).multiply(15);
             const dustPosition = this.vehicle.position.add(backOffset);
             
@@ -271,7 +272,7 @@ export class Game {
                 angle: this.vehicle.angle,
                 speed: this.vehicle.speed,
                 velocity: this.vehicle.velocity,
-                threshold: 80,
+                threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
                 dustPosition: dustPosition
             } as SpeedThresholdReachedEvent);
         }
@@ -290,7 +291,7 @@ export class Game {
             } as EntityMovedEvent);
             
             // Emit speed threshold event for enemies moving fast
-            if (enemy.speed > 70) {
+            if (enemy.speed > GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD) {
                 const backOffset = new Vector2D(-Math.cos(enemy.angle), -Math.sin(enemy.angle)).multiply(12);
                 const dustPosition = enemy.position.add(backOffset);
                 
@@ -301,7 +302,7 @@ export class Game {
                     angle: enemy.angle,
                     speed: enemy.speed,
                     velocity: enemy.velocity,
-                    threshold: 70,
+                    threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
                     dustPosition: dustPosition
                 } as SpeedThresholdReachedEvent);
             }

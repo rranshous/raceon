@@ -1,9 +1,10 @@
 import { Vector2D } from '../utils/Vector2D';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 export class ScreenShake {
     private shakeIntensity: number = 0;
     private shakeDuration: number = 0;
-    private shakeDecay: number = 0.9;
+    private shakeDecay: number = GAME_CONFIG.EFFECTS.SCREEN_SHAKE.DECAY_RATE;
     private currentOffset: Vector2D = new Vector2D(0, 0);
     
     constructor() {}

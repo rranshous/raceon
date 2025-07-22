@@ -106,7 +106,7 @@ export const GAME_CONFIG = {
     SCREEN_SHAKE: {
       COLLISION_INTENSITY: 10,
       DESTRUCTION_INTENSITY: 15,
-      DECAY_RATE: 20
+      DECAY_RATE: 0.9  // Decay multiplier per frame (0.9 = 10% reduction per frame, should be < 1.0)
     }
   },
   

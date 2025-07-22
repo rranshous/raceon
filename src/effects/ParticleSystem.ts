@@ -1,4 +1,5 @@
 import { Vector2D } from '../utils/Vector2D';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 export interface Particle {
     position: Vector2D;
@@ -12,7 +13,7 @@ export interface Particle {
 
 export class ParticleSystem {
     private particles: Particle[] = [];
-    private maxParticles: number = 200; // Reasonable limit for performance
+    private maxParticles: number = GAME_CONFIG.EFFECTS.PARTICLES.MAX_COUNT;
     
     constructor() {}
     
@@ -46,10 +47,11 @@ export class ParticleSystem {
     // Create destruction particles (for bandit destruction)
     createDestructionParticles(position: Vector2D, velocity: Vector2D): void {
         // Metal debris
-        for (let i = 0; i < 8; i++) {
+        const debrisCount = GAME_CONFIG.EFFECTS.PARTICLES.DESTRUCTION_PARTICLE_COUNT;
+        for (let i = 0; i < debrisCount; i++) {
             if (this.particles.length >= this.maxParticles) break;
             
-            const angle = (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+            const angle = (i / debrisCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
             const speed = 40 + Math.random() * 60;
             
             this.particles.push({
@@ -75,7 +77,8 @@ export class ParticleSystem {
     
     // Create water splash particles
     createWaterSplash(position: Vector2D): void {
-        for (let i = 0; i < 6; i++) {
+        const splashCount = GAME_CONFIG.EFFECTS.PARTICLES.COLLISION_PARTICLE_COUNT;
+        for (let i = 0; i < splashCount; i++) {
             if (this.particles.length >= this.maxParticles) break;
             
             const angle = (Math.random() - 0.5) * Math.PI;

@@ -273,9 +273,10 @@ export class DesertWorld {
 
     // Check collision with water obstacles
     checkWaterCollision(position: Vector2D, radius: number): WaterObstacle | null {
+        const adjustedRadius = radius * GAME_CONFIG.PHYSICS.WATER_COLLISION_RADIUS_MULTIPLIER;
         for (const obstacle of this.waterObstacles) {
             const distance = position.subtract(obstacle.position).length();
-            if (distance < radius + obstacle.radius) {
+            if (distance < adjustedRadius + obstacle.radius) {
                 return obstacle;
             }
         }
@@ -284,9 +285,10 @@ export class DesertWorld {
     
     // Check collision with rock obstacles (solid collision like water)
     checkRockCollision(position: Vector2D, radius: number): RockObstacle | null {
+        const adjustedRadius = radius * GAME_CONFIG.PHYSICS.ROCK_COLLISION_RADIUS_MULTIPLIER;
         for (const obstacle of this.rockObstacles) {
             const distance = position.subtract(obstacle.position).length();
-            if (distance < radius + obstacle.radius) {
+            if (distance < adjustedRadius + obstacle.radius) {
                 return obstacle;
             }
         }

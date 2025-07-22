@@ -1,4 +1,5 @@
 import { Vector2D } from '../utils/Vector2D';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 export interface TireTrack {
     position: Vector2D;
@@ -11,16 +12,16 @@ export interface TireTrack {
 
 export class TireTrackSystem {
     private tracks: TireTrack[] = [];
-    private maxTracks: number = 500; // Limit for performance
-    private trackSpacing: number = 8; // Distance between track marks
+    private maxTracks: number = GAME_CONFIG.EFFECTS.TIRE_TRACKS.MAX_COUNT;
+    private trackSpacing: number = GAME_CONFIG.EFFECTS.TIRE_TRACKS.SEGMENT_DISTANCE;
     private lastTrackPositions: Map<string, Vector2D> = new Map();
     
     constructor() {}
     
     // Add tire tracks for a vehicle
     addTracks(vehicleId: string, position: Vector2D, angle: number, speed: number, vehicleType: 'player' | 'bandit'): void {
-        // Only create tracks if vehicle is moving
-        if (speed < 10) return;
+        // Only create tracks if vehicle is moving fast enough
+        if (speed < GAME_CONFIG.EFFECTS.TIRE_TRACKS.SPEED_THRESHOLD) return;
         
         const lastPos = this.lastTrackPositions.get(vehicleId);
         
