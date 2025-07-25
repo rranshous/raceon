@@ -93,6 +93,16 @@ A browser-based combat racing game, built with TypeScript and HTML5 Canvas.
 - **Scalable architecture**: Foundation ready for different AI personality types and advanced behaviors
 - **Ultra-efficient**: 83% reduction in collision calculations while improving avoidance quality
 
+### Phase 13: Apocalyptic Bandit Transformation 🏴‍☠️💧
+**Major Game Design Pivot**: [Experimental shift to post-apocalyptic bandit simulation](docs/apocalyptic_bandit_vision.md)
+- **Role reversal**: From desert justice to becoming the water bandits ourselves
+- **Economic simulation**: Towns, trade routes, and water scarcity drive gameplay
+- **Predator-prey dynamics**: Hunt water convoys traveling between towns and oases
+- **Emergent storytelling**: Player actions ripple through a living world economy
+- **Modular expansion**: Foundation for full post-apocalyptic civilization simulator
+- **Experimental gameplay**: Testing complex AI behaviors and systemic interactions
+- **Long-term vision**: Multi-faction politics, dynamic world generation, player-driven narratives
+
 ## 🎯 What We've Built
 
 - **Smooth vehicle physics** with realistic driving feel
