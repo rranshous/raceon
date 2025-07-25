@@ -64,6 +64,12 @@ export const GAME_CONFIG = {
       STUCK_TIMER_DECAY: 3.0,            // How fast stuck timer decays when moving
       MIN_MOVEMENT_SPEED: 20,            // Minimum speed to consider for stuck detection
       
+      // Predictive obstacle avoidance
+      LOOKAHEAD_DISTANCE: 80,            // How far ahead to scan for obstacles (pixels)
+      AVOIDANCE_TURN_STRENGTH: 2.5,      // Multiplier for avoidance steering
+      OBSTACLE_BUFFER_DISTANCE: 20,      // Extra safety margin around obstacles
+      AVOIDANCE_SMOOTHING: 0.7,          // How smoothly to blend avoidance steering (0-1)
+      
       // Spawning
       SPAWN_INTERVAL: 2,    // Seconds between spawns
       MAX_ACTIVE: 4,        // Maximum bandits alive at once

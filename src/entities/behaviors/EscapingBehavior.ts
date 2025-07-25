@@ -13,11 +13,9 @@ import { DesertWorld } from '../../world/DesertWorld';
 interface EscapingBehaviorState {
   escapeTarget: Vector2D;
   wanderAngle: number;
-  stuckTimer: number;
-  lastPosition: Vector2D;
-  avoidanceTarget: Vector2D | null;
-  avoidanceStartTime: number;
   state: 'escaping' | 'destroyed';
+  lastAvoidanceCheck: number; // Timestamp of last obstacle check (for performance)
+  cachedAvoidanceDirection: Vector2D | null; // Cached avoidance direction
 }
 
 export class EscapingBehavior implements EntityBehavior {
@@ -56,123 +54,114 @@ export class EscapingBehavior implements EntityBehavior {
     this.behaviorState.set(entity, {
       escapeTarget,
       wanderAngle: initialAngle + (Math.random() - 0.5) * 0.5,
-      stuckTimer: 0,
-      lastPosition: new Vector2D(entity.position.x, entity.position.y),
-      avoidanceTarget: null,
-      avoidanceStartTime: 0,
-      state: 'escaping'
+      state: 'escaping',
+      lastAvoidanceCheck: 0,
+      cachedAvoidanceDirection: null
     });
   }
   
-  update(entity: BaseEntity, deltaTime: number, _world: DesertWorld): void {
+  update(entity: BaseEntity, deltaTime: number, world: DesertWorld): void {
     const state = this.behaviorState.get(entity);
     if (!state || !entity.isAlive) return;
     
     // Only handle AI logic - physics is handled by the unified physics system
-    this.updateAI(entity, state, deltaTime);
+    this.updateAI(entity, state, deltaTime, world);
   }
   
-  private updateAI(entity: BaseEntity, state: EscapingBehaviorState, deltaTime: number): void {
+  private updateAI(entity: BaseEntity, state: EscapingBehaviorState, deltaTime: number, world: DesertWorld): void {
     if (state.state === 'destroyed') return;
     
     const config = entity.entityDefinition;
+    const currentTime = performance.now();
     
-    // Check if we're genuinely stuck (very lenient detection)
-    const distanceMoved = entity.position.subtract(state.lastPosition).length();
-    const expectedMovement = entity.speed * deltaTime;
+    // OPTIMIZED: Even less frequent obstacle checks for maximum performance
+    const avoidanceCheckInterval = 500; // milliseconds - much longer for smoother behavior and better performance
+    let avoidanceDirection: Vector2D | null = null;
     
-    // Only consider stuck if we're trying to move but not getting anywhere
-    if (entity.speed > config.minMovementSpeed && 
-        distanceMoved < expectedMovement * config.stuckMovementThreshold) {
-      state.stuckTimer += deltaTime;
+    if (currentTime - state.lastAvoidanceCheck > avoidanceCheckInterval) {
+      // Time to do a new obstacle check using FAST pre-computed grid lookup
+      avoidanceDirection = this.getOptimizedAvoidanceDirection(entity, world);
+      state.lastAvoidanceCheck = currentTime;
+      state.cachedAvoidanceDirection = avoidanceDirection;
     } else {
-      state.stuckTimer = Math.max(0, state.stuckTimer - deltaTime * config.stuckTimerDecay);
-    }
-    state.lastPosition = new Vector2D(entity.position.x, entity.position.y);
-    
-    // If genuinely stuck for a long time, add avoidance behavior
-    if (state.stuckTimer > config.stuckDetectionTime) {
-      // Only create new avoidance if we don't have one or the current one is old
-      const avoidanceAge = performance.now() - state.avoidanceStartTime;
-      if (!state.avoidanceTarget || avoidanceAge > config.avoidanceCooldown * 1000) {
-        this.createAvoidanceTarget(entity, state);
-      }
-      state.stuckTimer = 0;
+      // Use cached avoidance direction
+      avoidanceDirection = state.cachedAvoidanceDirection;
     }
     
-    // Determine target (either escape target or avoidance target)
-    let currentTarget = state.escapeTarget;
-    if (state.avoidanceTarget) {
-      currentTarget = state.avoidanceTarget;
+    let targetDirection: Vector2D;
+    
+    if (avoidanceDirection) {
+      // There's an obstacle or bad terrain ahead - steer away but less dramatically
+      const escapeDirection = state.escapeTarget.subtract(entity.position).normalize();
       
-      // Clear avoidance target if we're close enough or it's been too long
-      const distanceToAvoidance = entity.position.subtract(state.avoidanceTarget).length();
-      const avoidanceAge = performance.now() - state.avoidanceStartTime;
+      // Reduced avoidance strength for smoother behavior (75% avoidance, 25% escape)
+      targetDirection = avoidanceDirection.multiply(0.75).add(escapeDirection.multiply(0.25)).normalize();
       
-      if (distanceToAvoidance < 50 || avoidanceAge > config.avoidanceDuration * 1000) {
-        state.avoidanceTarget = null;
-        console.log('Entity cleared avoidance target - reached destination or timeout');
+      // Only log occasionally to avoid console spam
+      if (Math.random() < 0.01) { // 1% chance to log
+        console.log('🚧 Entity avoiding obstacle/terrain (pre-computed)');
       }
-    }
-    
-    // Calculate direction to target with natural wandering
-    const directionToTarget = currentTarget.subtract(entity.position);
-    const distanceToTarget = directionToTarget.length();
-    
-    if (distanceToTarget > 10) {
-      // Add some wandering behavior for more natural movement
+    } else {
+      // No obstacle - head toward escape target with some wandering
+      const escapeDirection = state.escapeTarget.subtract(entity.position).normalize();
+      
+      // Add wandering for natural movement
       state.wanderAngle += (Math.random() - 0.5) * config.wanderStrength * deltaTime;
+      const wanderDirection = new Vector2D(Math.cos(state.wanderAngle), Math.sin(state.wanderAngle));
       
-      // Calculate desired angle (target direction + wander)
-      const targetAngle = Math.atan2(directionToTarget.y, directionToTarget.x);
-      const wanderInfluence = 0.15; // Reduced swerving
-      const desiredAngle = targetAngle + state.wanderAngle * wanderInfluence;
-      
-      // Smoothly turn toward desired angle
-      let angleDiff = desiredAngle - entity.angle;
-      
-      // Normalize angle difference to [-π, π]
-      while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-      while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-      
-      // Turn toward target with some variation in turn speed
-      const baseTurnSpeed = config.turnSpeed * (0.8 + Math.random() * 0.4);
-      const maxTurnThisFrame = baseTurnSpeed * deltaTime;
-      if (Math.abs(angleDiff) < maxTurnThisFrame) {
-        entity.angle = desiredAngle;
-      } else {
-        entity.angle += Math.sign(angleDiff) * maxTurnThisFrame;
-      }
-      
-      // Vary acceleration for more natural movement
-      const baseAcceleration = config.acceleration * (0.7 + Math.random() * 0.6);
-      entity.speed += baseAcceleration * deltaTime;
-      entity.speed = Math.min(config.maxSpeed, entity.speed);
-    } else {
-      // Near target - apply friction
-      entity.speed = Math.max(0, entity.speed - config.friction * deltaTime);
+      // Blend escape direction with wandering (85% escape, 15% wander)
+      targetDirection = escapeDirection.multiply(0.85).add(wanderDirection.multiply(0.15)).normalize();
     }
+    
+    // Calculate desired angle
+    const desiredAngle = Math.atan2(targetDirection.y, targetDirection.x);
+    
+    // Smoothly turn toward desired angle - FASTER TURNING when avoiding obstacles
+    let angleDiff = desiredAngle - entity.angle;
+    
+    // Normalize angle difference to [-π, π]
+    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+    
+    // Turn toward target - Moderate speed increase when avoiding obstacles
+    let turnSpeed = config.turnSpeed;
+    if (avoidanceDirection) {
+      turnSpeed *= 1.5; // Turn 50% faster when avoiding obstacles (reduced from 2x)
+    }
+    
+    const maxTurnThisFrame = turnSpeed * deltaTime;
+    if (Math.abs(angleDiff) < maxTurnThisFrame) {
+      entity.angle = desiredAngle;
+    } else {
+      entity.angle += Math.sign(angleDiff) * maxTurnThisFrame;
+    }
+    
+    // Move forward
+    entity.speed += config.acceleration * deltaTime;
+    entity.speed = Math.min(config.maxSpeed, entity.speed);
   }
   
-  private createAvoidanceTarget(entity: BaseEntity, state: EscapingBehaviorState): void {
-    // Create a more strategic avoidance target to prevent oscillation
-    const avoidanceDistance = 150 + Math.random() * 100; // 150-250 pixels away
+  /**
+   * Ultra-fast optimized avoidance using pre-computed grid data
+   */
+  private getOptimizedAvoidanceDirection(entity: BaseEntity, world: DesertWorld): Vector2D | null {
+    // Look ahead multiple points for better prediction
+    const lookAheadDistances = [60, 100, 140]; // Multiple look-ahead points
+    const forwardDirection = new Vector2D(Math.cos(entity.angle), Math.sin(entity.angle));
     
-    // Try to go around obstacles in the direction of the escape target
-    const escapeDirection = state.escapeTarget.subtract(entity.position).normalize();
-    const perpendicular = new Vector2D(-escapeDirection.y, escapeDirection.x);
+    // Check multiple points along our path
+    for (const distance of lookAheadDistances) {
+      const lookAheadPosition = entity.position.add(forwardDirection.multiply(distance));
+      
+      // ULTRA-FAST: O(1) lookup using pre-computed grid
+      const avoidanceVector = world.getAvoidanceVector(lookAheadPosition);
+      if (avoidanceVector) {
+        // Found obstacle at this look-ahead distance
+        return avoidanceVector;
+      }
+    }
     
-    // Choose left or right around the obstacle
-    const sideChoice = Math.random() > 0.5 ? 1 : -1;
-    const avoidanceDirection = escapeDirection.add(perpendicular.multiply(sideChoice)).normalize();
-    
-    state.avoidanceTarget = new Vector2D(
-      entity.position.x + avoidanceDirection.x * avoidanceDistance,
-      entity.position.y + avoidanceDirection.y * avoidanceDistance
-    );
-    
-    state.avoidanceStartTime = performance.now();
-    console.log('Entity created smart avoidance target - going around obstacle toward escape');
+    return null; // No obstacles found on our path
   }
   
   cleanup(entity: BaseEntity): void {
@@ -185,15 +174,9 @@ export class EscapingBehavior implements EntityBehavior {
     
     return {
       state: state.state,
-      stuckTimer: state.stuckTimer.toFixed(2),
-      hasAvoidanceTarget: !!state.avoidanceTarget,
       distanceToEscape: entity.position.subtract(state.escapeTarget).length().toFixed(0),
-      // Provide the actual target objects for the debug renderer
       escapeTarget: state.escapeTarget,
-      avoidanceTarget: state.avoidanceTarget,
-      // Additional properties for compatibility with old debug renderer
-      position: entity.position,
-      isStuck: state.stuckTimer > 1.0
+      position: entity.position
     };
   }
 }

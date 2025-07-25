@@ -19,6 +19,13 @@ export interface TerrainEffect {
     slowdownFactor: number; // 0.0 = full stop, 1.0 = no slowdown
 }
 
+// Pre-computed avoidance data for fast AI lookups
+export interface AvoidanceCell {
+    hasObstacles: boolean;
+    avoidanceVector: Vector2D; // Pre-computed "away from obstacles" direction
+    obstacleDistance: number; // Distance to nearest obstacle
+}
+
 export class DesertWorld {
     private desertTiles: DesertTile[] = [];
     private waterObstacles: WaterObstacle[] = [];
@@ -26,13 +33,26 @@ export class DesertWorld {
     private terrainEffects: TerrainEffect[] = [];
     private desertSprite: DesertSprite | null = null;
     
+    // Pre-computed avoidance grid for AI performance
+    private avoidanceGrid: AvoidanceCell[][] = [];
+    private gridCellSize = 32; // Size of each grid cell in pixels
+    private gridWidth: number;
+    private gridHeight: number;
+    
     // World dimensions (from config)
     public readonly worldWidth = GAME_CONFIG.WORLD.WIDTH;
     public readonly worldHeight = GAME_CONFIG.WORLD.HEIGHT;
     
     constructor() {
+        // Initialize grid dimensions
+        this.gridWidth = Math.ceil(this.worldWidth / this.gridCellSize);
+        this.gridHeight = Math.ceil(this.worldHeight / this.gridCellSize);
+        
         this.generateDesertTerrain();
         this.generateWaterObstacles();
+        
+        // Pre-compute avoidance grid after all obstacles are generated
+        this.precomputeAvoidanceGrid();
     }
 
     setDesertSprite(sprite: DesertSprite): void {
@@ -319,6 +339,11 @@ export class DesertWorld {
     getRockObstacles(): RockObstacle[] {
         return this.rockObstacles;
     }
+    
+    // Get all terrain effects (for AI navigation)
+    getTerrainEffects(): TerrainEffect[] {
+        return this.terrainEffects;
+    }
 
     // Keep player within world bounds
     clampToWorldBounds(position: Vector2D): Vector2D {
@@ -326,5 +351,101 @@ export class DesertWorld {
             Math.max(50, Math.min(this.worldWidth - 50, position.x)),
             Math.max(50, Math.min(this.worldHeight - 50, position.y))
         );
+    }
+    
+    /**
+     * Pre-compute avoidance data for the entire world grid
+     * This runs once at startup to optimize AI performance
+     */
+    private precomputeAvoidanceGrid(): void {
+        console.log('🔧 Pre-computing avoidance grid for AI optimization...');
+        
+        // Initialize the grid
+        this.avoidanceGrid = [];
+        for (let x = 0; x < this.gridWidth; x++) {
+            this.avoidanceGrid[x] = [];
+            for (let y = 0; y < this.gridHeight; y++) {
+                this.avoidanceGrid[x][y] = this.computeAvoidanceForCell(x, y);
+            }
+        }
+        
+        console.log(`✅ Avoidance grid computed: ${this.gridWidth}x${this.gridHeight} cells`);
+    }
+    
+    /**
+     * Compute avoidance data for a single grid cell
+     */
+    private computeAvoidanceForCell(gridX: number, gridY: number): AvoidanceCell {
+        const worldX = gridX * this.gridCellSize + this.gridCellSize / 2;
+        const worldY = gridY * this.gridCellSize + this.gridCellSize / 2;
+        const cellCenter = new Vector2D(worldX, worldY);
+        
+        let nearestObstacle: Vector2D | null = null;
+        let nearestDistance = Number.MAX_VALUE;
+        
+        // Check all water obstacles
+        for (const obstacle of this.waterObstacles) {
+            const distance = cellCenter.subtract(obstacle.position).length();
+            const effectiveDistance = distance - obstacle.radius;
+            if (effectiveDistance < nearestDistance) {
+                nearestDistance = effectiveDistance;
+                nearestObstacle = obstacle.position;
+            }
+        }
+        
+        // Check all rock obstacles
+        for (const obstacle of this.rockObstacles) {
+            const distance = cellCenter.subtract(obstacle.position).length();
+            const effectiveDistance = distance - obstacle.radius;
+            if (effectiveDistance < nearestDistance) {
+                nearestDistance = effectiveDistance;
+                nearestObstacle = obstacle.position;
+            }
+        }
+        
+        // Check terrain effects (only significant slowdown areas)
+        for (const effect of this.terrainEffects) {
+            if (effect.slowdownFactor < 0.8) { // Only avoid significant slowdown
+                const distance = cellCenter.subtract(effect.position).length();
+                const effectiveDistance = distance - effect.radius;
+                if (effectiveDistance < nearestDistance) {
+                    nearestDistance = effectiveDistance;
+                    nearestObstacle = effect.position;
+                }
+            }
+        }
+        
+        // Compute avoidance data
+        const avoidanceThreshold = 100; // Avoid obstacles within 100 pixels
+        const hasObstacles = nearestDistance < avoidanceThreshold;
+        
+        let avoidanceVector = new Vector2D(0, 0);
+        if (hasObstacles && nearestObstacle) {
+            // Vector pointing away from nearest obstacle
+            avoidanceVector = cellCenter.subtract(nearestObstacle).normalize();
+        }
+        
+        return {
+            hasObstacles,
+            avoidanceVector,
+            obstacleDistance: nearestDistance
+        };
+    }
+    
+    /**
+     * Fast AI avoidance lookup - O(1) instead of O(n) obstacle checks
+     */
+    getAvoidanceVector(position: Vector2D): Vector2D | null {
+        // Convert world position to grid coordinates
+        const gridX = Math.floor(position.x / this.gridCellSize);
+        const gridY = Math.floor(position.y / this.gridCellSize);
+        
+        // Bounds check
+        if (gridX < 0 || gridX >= this.gridWidth || gridY < 0 || gridY >= this.gridHeight) {
+            return null;
+        }
+        
+        const cell = this.avoidanceGrid[gridX][gridY];
+        return cell.hasObstacles ? cell.avoidanceVector : null;
     }
 }
