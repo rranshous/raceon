@@ -59,3 +59,7 @@ jspm_packages/
 
 # Yarn Integrity file
 .yarn-integrity
+
+# Game distribution files
+*.zip
+raceon-game*.zip

@@ -7,6 +7,12 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
-  }
+    sourcemap: false, // Remove sourcemaps for production
+    rollupOptions: {
+      output: {
+        manualChunks: undefined // Keep everything in one bundle for simplicity
+      }
+    }
+  },
+  base: './' // Use relative paths for itch.io compatibility
 })

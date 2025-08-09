@@ -49,17 +49,17 @@ export class AssetManager {
     async loadAllAssets(): Promise<void> {
         // Load car sprites
         await Promise.all([
-            this.loadImage('car_yellow', '/resources/assets/mini-pixel-pack-2/Cars/Player_yellow (16 x 16).png'),
-            this.loadImage('car_blue', '/resources/assets/mini-pixel-pack-2/Cars/Player_blue (16 x 16).png'),
-            this.loadImage('car_red', '/resources/assets/mini-pixel-pack-2/Cars/Player_red (16 x 16).png'),
-            this.loadImage('car_green', '/resources/assets/mini-pixel-pack-2/Cars/Player_green (16 x 16).png'),
+            this.loadImage('car_yellow', './resources/assets/mini-pixel-pack-2/Cars/Player_yellow (16 x 16).png'),
+            this.loadImage('car_blue', './resources/assets/mini-pixel-pack-2/Cars/Player_blue (16 x 16).png'),
+            this.loadImage('car_red', './resources/assets/mini-pixel-pack-2/Cars/Player_red (16 x 16).png'),
+            this.loadImage('car_green', './resources/assets/mini-pixel-pack-2/Cars/Player_green (16 x 16).png'),
             // Load motorcycle from new vehicle assets
-            this.loadImage('motorcycle_hunter', '/resources/assets/2D-Top-down-180-pixel-vehicles/2D Top Down 180 Vehicles ( size x2 ).png'),
+            this.loadImage('motorcycle_hunter', './resources/assets/2D-Top-down-180-pixel-vehicles/2D Top Down 180 Vehicles ( size x2 ).png'),
             // Load desert environment assets
-            this.loadImage('desert_details', '/resources/assets/mini-pixel-pack-2/Levels/Desert_details (16 x 16).png'),
-            this.loadImage('water_tiles', '/resources/assets/mini-pixel-pack-2/Levels/Highway_water_color (16 x 16).png'),
+            this.loadImage('desert_details', './resources/assets/mini-pixel-pack-2/Levels/Desert_details (16 x 16).png'),
+            this.loadImage('water_tiles', './resources/assets/mini-pixel-pack-2/Levels/Highway_water_color (16 x 16).png'),
             // Keep props for any other features we might add later
-            this.loadImage('misc_props', '/resources/assets/mini-pixel-pack-2/Props/Misc_props (16 x 16).png'),
+            this.loadImage('misc_props', './resources/assets/mini-pixel-pack-2/Props/Misc_props (16 x 16).png'),
         ]);
     }
 }

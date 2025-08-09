@@ -128,6 +128,17 @@ A browser-based combat racing game, built with TypeScript and HTML5 Canvas.
 - **Justice collision system** - ram bandits to stop water theft!
 - **Intelligent obstacle avoidance** - enemies smoothly navigate around all terrain types using pre-computed spatial data
 - **Performance-optimized AI** - O(1) avoidance lookups enable scaling to hundreds of enemies
+
+### Phase 15: Itch.io Publishing Ready 🚀📦
+**Key Commits**: [Production build optimization for itch.io deployment](https://github.com/rranshous/raceon/commit/latest)
+- **Production build pipeline**: Optimized Vite configuration for web deployment
+- **Asset management**: Automated resource copying for complete game packages
+- **Itch.io compatibility**: Relative paths and proper HTML5 game structure
+- **Deployment automation**: `npm run build:itch` command creates ready-to-upload packages
+- **ZIP packaging**: Complete game bundle (499KB) ready for itch.io upload
+- **Publishing documentation**: Comprehensive guides for itch.io deployment and marketing
+- **Web-optimized**: Removed sourcemaps and optimized bundle size for faster loading
+- **Cross-platform compatibility**: Runs in any modern web browser
 - **Visual debug tools** - godly mode overlay for development and analysis
 - **Realistic AI physics** - bandits follow same rules as player (no cheating!)
 - **Immersive effects system** - screen shake, particles, dust trails, and tire tracks

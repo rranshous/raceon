@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:itch": "npm run build && cp -r resources dist/ && rm -f raceon-game.zip && zip -r raceon-game.zip dist/ && echo 'Build complete! raceon-game.zip ready for itch.io upload'",
     "preview": "vite preview",
     "start": "npm run dev"
   },
