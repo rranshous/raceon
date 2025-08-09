@@ -136,7 +136,7 @@ export class Game {
         // Listen for entity movement events to trigger tire tracks
         GameEvents.on(EVENT_TYPES.ENTITY_MOVED, (event: EntityMovedEvent) => {
             // Add tire tracks for all moving entities
-            let vehicleType = 'bandit'; // default
+            let vehicleType: 'player' | 'bandit' | 'hunter' = 'bandit'; // default
             if (event.entityType === 'player') {
                 vehicleType = 'player';
             } else if (event.entityId.startsWith('hunter_')) {
@@ -157,36 +157,11 @@ export class Game {
         try {
             await this.assetManager.loadAllAssets();
             
-            // Set up the yellow car sprite
-            const yellowCarImage = this.assetManager.getImage('car_yellow');
-            if (yellowCarImage) {
-                const carSprite = new CarSprite(yellowCarImage);
-                this.vehicle.setSprite(carSprite);
-            }
+            // Set up entity sprites
+            this.setupEntitySprites();
             
-            // Set up blue car sprite for bandits
-            const blueCarImage = this.assetManager.getImage('car_blue');
-            if (blueCarImage) {
-                const banditSprite = new CarSprite(blueCarImage);
-                this.enemyManager.setEnemySprite('water_bandit', banditSprite);
-            }
-            
-            // Set up red car sprite for hunters (temporary - will use motorcycle later)
-            const redCarImage = this.assetManager.getImage('car_red');
-            if (redCarImage) {
-                const hunterSprite = new CarSprite(redCarImage);
-                this.enemyManager.setEnemySprite('hunter_motorcycle', hunterSprite);
-            }
-            
-            // Set up desert world sprites
-            const desertDetailsImage = this.assetManager.getImage('desert_details');
-            const waterTilesImage = this.assetManager.getImage('water_tiles');
-            if (desertDetailsImage && waterTilesImage) {
-                const desertSprite = new DesertSprite();
-                desertSprite.setDesertDetailsImage(desertDetailsImage);
-                desertSprite.setWaterImage(waterTilesImage);
-                this.desertWorld.setDesertSprite(desertSprite);
-            }
+            // Set up world sprites
+            this.setupWorldSprites();
             
             this.assetsLoaded = true;
             console.log('Assets loaded successfully!');
@@ -194,6 +169,45 @@ export class Game {
             console.error('Failed to load assets:', error);
             // Game will fall back to rectangle rendering
             this.assetsLoaded = false;
+        }
+    }
+    
+    /**
+     * Set up sprites for all entities - DRY asset loading
+     */
+    private setupEntitySprites(): void {
+        // Entity sprite configurations
+        const spriteConfigs = [
+            { entityId: 'player', imageName: 'car_yellow', target: this.vehicle },
+            { entityId: 'water_bandit', imageName: 'car_blue', target: this.enemyManager },
+            { entityId: 'hunter_motorcycle', imageName: 'car_red', target: this.enemyManager }
+        ];
+        
+        spriteConfigs.forEach(config => {
+            const image = this.assetManager.getImage(config.imageName);
+            if (image) {
+                const sprite = new CarSprite(image);
+                if (config.entityId === 'player') {
+                    this.vehicle.setSprite(sprite);
+                } else {
+                    this.enemyManager.setEnemySprite(config.entityId, sprite);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Set up world environment sprites
+     */
+    private setupWorldSprites(): void {
+        const desertDetailsImage = this.assetManager.getImage('desert_details');
+        const waterTilesImage = this.assetManager.getImage('water_tiles');
+        
+        if (desertDetailsImage && waterTilesImage) {
+            const desertSprite = new DesertSprite();
+            desertSprite.setDesertDetailsImage(desertDetailsImage);
+            desertSprite.setWaterImage(waterTilesImage);
+            this.desertWorld.setDesertSprite(desertSprite);
         }
     }
 
@@ -279,93 +293,7 @@ export class Game {
         }
         
         // Emit entity movement events
-        GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
-            entityId: 'player',
-            entityType: 'player',
-            position: this.vehicle.position,
-            angle: this.vehicle.angle,
-            speed: this.vehicle.speed,
-            velocity: this.vehicle.velocity
-        } as EntityMovedEvent);
-        
-        // Emit speed threshold events for player
-        if (this.vehicle.speed > GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD) {
-            const backOffset = new Vector2D(-Math.cos(this.vehicle.angle), -Math.sin(this.vehicle.angle)).multiply(15);
-            const dustPosition = this.vehicle.position.add(backOffset);
-            
-            GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
-                entityId: 'player',
-                entityType: 'player',
-                position: this.vehicle.position,
-                angle: this.vehicle.angle,
-                speed: this.vehicle.speed,
-                velocity: this.vehicle.velocity,
-                threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
-                dustPosition: dustPosition
-            } as SpeedThresholdReachedEvent);
-        }
-        
-        // Emit movement events for enemies (bandits and hunters)
-        const activeBandits = this.enemyManager.getActiveEnemies('water_bandit');
-        activeBandits.forEach((enemy, index) => {
-            // Emit entity movement event
-            GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
-                entityId: `bandit_${index}`,
-                entityType: 'enemy',
-                position: enemy.position,
-                angle: enemy.angle,
-                speed: enemy.speed,
-                velocity: enemy.velocity
-            } as EntityMovedEvent);
-            
-            // Emit speed threshold event for enemies moving fast
-            if (enemy.speed > GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD) {
-                const backOffset = new Vector2D(-Math.cos(enemy.angle), -Math.sin(enemy.angle)).multiply(12);
-                const dustPosition = enemy.position.add(backOffset);
-                
-                GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
-                    entityId: `bandit_${index}`,
-                    entityType: 'enemy',
-                    position: enemy.position,
-                    angle: enemy.angle,
-                    speed: enemy.speed,
-                    velocity: enemy.velocity,
-                    threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
-                    dustPosition: dustPosition
-                } as SpeedThresholdReachedEvent);
-            }
-        });
-        
-        // Emit movement events for hunters
-        const activeHunters = this.enemyManager.getActiveEnemies('hunter_motorcycle');
-        activeHunters.forEach((hunter, index) => {
-            // Emit entity movement event
-            GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
-                entityId: `hunter_${index}`,
-                entityType: 'enemy', // Use 'enemy' type but with hunter prefix for track differentiation
-                position: hunter.position,
-                angle: hunter.angle,
-                speed: hunter.speed,
-                velocity: hunter.velocity
-            } as EntityMovedEvent);
-            
-            // Emit speed threshold event for hunters moving fast
-            if (hunter.speed > GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD) {
-                const backOffset = new Vector2D(-Math.cos(hunter.angle), -Math.sin(hunter.angle)).multiply(12);
-                const dustPosition = hunter.position.add(backOffset);
-                
-                GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
-                    entityId: `hunter_${index}`,
-                    entityType: 'enemy',
-                    position: hunter.position,
-                    angle: hunter.angle,
-                    speed: hunter.speed,
-                    velocity: hunter.velocity,
-                    threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
-                    dustPosition: dustPosition
-                } as SpeedThresholdReachedEvent);
-            }
-        });
+        this.emitEntityMovementEvents();
         
         // Update effect systems
         this.screenShake.update(deltaTime);
@@ -438,13 +366,31 @@ export class Game {
         this.ctx.font = '16px Arial';
         this.ctx.textAlign = 'left';
         
-        // Show separate counts for bandits and hunters
-        const banditCount = this.enemyManager.getActiveEnemies('water_bandit').length;
-        const hunterCount = this.enemyManager.getActiveEnemies('hunter_motorcycle').length;
+        // Dynamic entity counts - automatically includes any registered entity types
+        const entityStats = this.enemyManager.getStats();
+        let lineY = 30;
         
-        this.ctx.fillText(`Water Bandits: ${banditCount} active`, 10, 30);
-        this.ctx.fillText(`Hunters: ${hunterCount} active`, 10, 50);
-        this.ctx.fillText(`Bandit Kills: ${this.banditKills}`, 10, 70);
+        // Show counts for each entity type
+        Object.entries(entityStats.byType).forEach(([entityType, stats]) => {
+            const displayName = this.getEntityDisplayName(entityType);
+            this.ctx.fillText(`${displayName}: ${stats.active} active`, 10, lineY);
+            lineY += 20;
+        });
+        
+        // Show kill counter
+        this.ctx.fillText(`Enemy Kills: ${this.banditKills}`, 10, lineY);
+    }
+    
+    /**
+     * Get user-friendly display name for entity types
+     */
+    private getEntityDisplayName(entityType: string): string {
+        const displayNames: Record<string, string> = {
+            'water_bandit': 'Water Bandits',
+            'hunter_motorcycle': 'Hunters',
+            'raider': 'Raiders'
+        };
+        return displayNames[entityType] || entityType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
     
     /**
@@ -513,5 +459,78 @@ export class Game {
         this.screenShake.shake(1.5, 0.5); // Strong shake for death
         
         console.log('🔄 Game reset! Try to survive longer this time!');
+    }
+    
+    /**
+     * Unified entity movement event emission - DRY principle
+     */
+    private emitEntityMovementEvents(): void {
+        // Emit player movement events
+        this.emitMovementEventsForEntity(
+            this.vehicle, 
+            'player', 
+            'player', 
+            15 // backOffset multiplier
+        );
+        
+        // Emit bandit movement events  
+        const activeBandits = this.enemyManager.getActiveEnemies('water_bandit');
+        activeBandits.forEach((bandit, index) => {
+            this.emitMovementEventsForEntity(
+                bandit, 
+                `bandit_${index}`, 
+                'enemy', 
+                12 // backOffset multiplier
+            );
+        });
+        
+        // Emit hunter movement events
+        const activeHunters = this.enemyManager.getActiveEnemies('hunter_motorcycle');
+        activeHunters.forEach((hunter, index) => {
+            this.emitMovementEventsForEntity(
+                hunter, 
+                `hunter_${index}`, 
+                'enemy', 
+                12 // backOffset multiplier
+            );
+        });
+    }
+    
+    /**
+     * Emit movement and dust events for a single entity - eliminates code duplication
+     */
+    private emitMovementEventsForEntity(
+        entity: any, 
+        entityId: string, 
+        entityType: 'player' | 'enemy', 
+        dustBackOffsetMultiplier: number
+    ): void {
+        // Emit entity movement event
+        GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
+            entityId,
+            entityType,
+            position: entity.position,
+            angle: entity.angle,
+            speed: entity.speed,
+            velocity: entity.velocity
+        } as EntityMovedEvent);
+        
+        // Emit speed threshold event if moving fast enough
+        if (entity.speed > GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD) {
+            const backOffset = new Vector2D(-Math.cos(entity.angle), -Math.sin(entity.angle))
+                .multiply(dustBackOffsetMultiplier);
+            const dustPosition = entity.position.add(backOffset);
+            
+            GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
+                entityId,
+                entityType,
+                position: entity.position,
+                angle: entity.angle,
+                speed: entity.speed,
+                velocity: entity.velocity,
+                threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
+                dustPosition: dustPosition
+            } as SpeedThresholdReachedEvent);
+        }
     }
 }
