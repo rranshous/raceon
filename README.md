@@ -104,14 +104,15 @@ A browser-based combat racing game, built with TypeScript and HTML5 Canvas.
 - **Long-term vision**: Multi-faction politics, dynamic world generation, player-driven narratives
 
 ### Phase 14: Hunter Motorcycle Experiment 🏍️🔴
-**Key Commit**: [Implement basic hunter motorcycles system](https://github.com/rranshous/raceon/commit/c5178e1)
+**Key Commits**: [Initial hunter implementation](https://github.com/rranshous/raceon/commit/7750bbe) & [Working hunter system with clean console](https://github.com/rranshous/raceon/commit/latest)
 - **Escalation mechanics**: Press 'H' to spawn red hunter motorcycles that pursue player
 - **Chasing behavior**: New AI behavior that targets player instead of escaping to world edges  
 - **Kill tracking system**: Console displays bandit elimination count for future automatic spawning
 - **Entity system expansion**: Hunters registered as separate entity type with own configuration
 - **Visual distinction**: Red car sprites (temporary) differentiate hunters from blue bandits
+- **Console cleanup**: Removed spammy obstacle avoidance and collision messages for cleaner debugging
 - **Behavioral analysis**: Hunters prioritize obstacle avoidance over aggressive pursuit, creating interesting but less threatening swarm behavior
-- **Technical foundation**: Complete chasing AI, manual spawning, and target tracking ready for refinement
+- **Technical foundation**: Complete chasing AI, manual spawning, and target tracking ready for refinement or alternative approaches
 
 ## 🎯 What We've Built
 
