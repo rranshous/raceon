@@ -8,6 +8,7 @@
 import { EntityRegistry } from './EntityRegistry';
 import { BehaviorRegistry } from './behaviors/BehaviorRegistry';
 import { EscapingBehavior } from './behaviors/EscapingBehavior';
+import { ChasingBehavior } from './behaviors/ChasingBehavior';
 import { GAME_CONFIG } from '../config/GameConfig';
 
 /**
@@ -18,6 +19,7 @@ export function initializeEntitySystem(): void {
   
   // Register behaviors
   BehaviorRegistry.register('escaping', () => new EscapingBehavior());
+  BehaviorRegistry.register('chasing', () => new ChasingBehavior());
   
   // Register entity types
   
@@ -51,6 +53,41 @@ export function initializeEntitySystem(): void {
     maxActive: GAME_CONFIG.ENEMIES.WATER_BANDIT.MAX_ACTIVE,
     spawnDistanceMin: GAME_CONFIG.ENEMIES.WATER_BANDIT.SPAWN_DISTANCE_MIN,
     spawnDistanceMax: GAME_CONFIG.ENEMIES.WATER_BANDIT.SPAWN_DISTANCE_MAX
+  });
+  
+  // Hunter Motorcycle - pursues player instead of escaping
+  EntityRegistry.register({
+    id: 'hunter_motorcycle',
+    name: 'Hunter Motorcycle',
+    sprite: 'motorcycle', // Will use motorcycle sprite
+    behavior: 'chasing', // Use chasing behavior to pursue player
+    
+    // Physical properties from config
+    maxSpeed: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.MAX_SPEED,
+    acceleration: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.ACCELERATION,
+    friction: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.FRICTION,
+    turnSpeed: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.TURN_SPEED,
+    width: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.WIDTH,
+    height: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.HEIGHT,
+    collisionRadiusMultiplier: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.COLLISION_RADIUS_MULTIPLIER,
+    
+    // AI properties from config
+    stuckDetectionTime: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.STUCK_DETECTION_TIME,
+    avoidanceDuration: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.AVOIDANCE_DURATION,
+    avoidanceCooldown: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.AVOIDANCE_COOLDOWN,
+    wanderStrength: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.WANDER_STRENGTH,
+    stuckMovementThreshold: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.STUCK_MOVEMENT_THRESHOLD,
+    stuckTimerDecay: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.STUCK_TIMER_DECAY,
+    minMovementSpeed: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.MIN_MOVEMENT_SPEED,
+    
+    // Hunter-specific spawning properties from config
+    spawnInterval: 0, // Hunters don't spawn on interval
+    maxActive: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.MAX_ACTIVE,
+    spawnDistanceMin: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.SPAWN_DISTANCE,
+    spawnDistanceMax: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.SPAWN_DISTANCE,
+    
+    // Hunter-specific properties
+    spawnTriggerKills: GAME_CONFIG.ENEMIES.HUNTER_MOTORCYCLE.SPAWN_TRIGGER_KILLS
   });
   
   // Example of how easy it is to add a new enemy type:

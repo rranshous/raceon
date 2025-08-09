@@ -156,6 +156,7 @@ export class EntityFactory {
     switch (entityId) {
       case 'water_bandit':
       case 'raider':
+      case 'hunter_motorcycle':
         // Use proper ES6 import instead of require()
         return new WaterBanditEntity(definition, startPosition, escapeTarget);
       

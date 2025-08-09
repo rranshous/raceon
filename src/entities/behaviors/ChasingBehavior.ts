@@ -1,8 +1,8 @@
 /**
- * Escaping Behavior
+ * Chasing Behavior
  * 
- * AI behavior for entities that try to escape to the edge of the world
- * while avoiding obstacles. Extracted from the original WaterBandit logic.
+ * AI behavior for entities that pursue the player across the map.
+ * Based on EscapingBehavior but targets player position instead of world edge.
  */
 
 import { Vector2D } from '../../utils/Vector2D';
@@ -10,53 +10,34 @@ import { EntityBehavior } from './BehaviorRegistry';
 import { BaseEntity } from '../EntityRegistry';
 import { DesertWorld } from '../../world/DesertWorld';
 
-interface EscapingBehaviorState {
-  escapeTarget: Vector2D;
+interface ChasingBehaviorState {
+  target: Vector2D;           // Player position (updated each frame)
   wanderAngle: number;
-  state: 'escaping' | 'destroyed';
+  state: 'chasing' | 'destroyed';
   lastAvoidanceCheck: number; // Timestamp of last obstacle check (for performance)
   cachedAvoidanceDirection: Vector2D | null; // Cached avoidance direction
+  lastPlayerPosition: Vector2D; // For prediction
 }
 
-export class EscapingBehavior implements EntityBehavior {
-  private behaviorState = new WeakMap<BaseEntity, EscapingBehaviorState>();
+export class ChasingBehavior implements EntityBehavior {
+  private behaviorState = new WeakMap<BaseEntity, ChasingBehaviorState>();
   
   initialize(entity: BaseEntity): void {
     // Set up initial behavior state
     
-    // Create escape target at world edge
-    const worldWidth = 2400; // TODO: Get from world config
-    const worldHeight = 1800;
+    // Initialize with entity's current position as target (will be updated to player position)
+    const initialTarget = new Vector2D(entity.position.x, entity.position.y);
     
-    // Choose random edge to escape to
-    const edge = Math.floor(Math.random() * 4);
-    let escapeTarget: Vector2D;
-    
-    switch (edge) {
-      case 0: // Top edge
-        escapeTarget = new Vector2D(Math.random() * worldWidth, -50);
-        break;
-      case 1: // Right edge
-        escapeTarget = new Vector2D(worldWidth + 50, Math.random() * worldHeight);
-        break;
-      case 2: // Bottom edge
-        escapeTarget = new Vector2D(Math.random() * worldWidth, worldHeight + 50);
-        break;
-      case 3: // Left edge
-      default:
-        escapeTarget = new Vector2D(-50, Math.random() * worldHeight);
-        break;
-    }
-    
-    const directionToEscape = escapeTarget.subtract(entity.position).normalize();
-    const initialAngle = Math.atan2(directionToEscape.y, directionToEscape.x);
+    const directionToTarget = initialTarget.subtract(entity.position).normalize();
+    const initialAngle = Math.atan2(directionToTarget.y, directionToTarget.x);
     
     this.behaviorState.set(entity, {
-      escapeTarget,
+      target: initialTarget,
       wanderAngle: initialAngle + (Math.random() - 0.5) * 0.5,
-      state: 'escaping',
+      state: 'chasing',
       lastAvoidanceCheck: 0,
-      cachedAvoidanceDirection: null
+      cachedAvoidanceDirection: null,
+      lastPlayerPosition: initialTarget
     });
   }
   
@@ -68,7 +49,16 @@ export class EscapingBehavior implements EntityBehavior {
     this.updateAI(entity, state, deltaTime, world);
   }
   
-  private updateAI(entity: BaseEntity, state: EscapingBehaviorState, deltaTime: number, world: DesertWorld): void {
+  // Method to update the target (will be called by game to set player position)
+  setTarget(entity: BaseEntity, playerPosition: Vector2D): void {
+    const state = this.behaviorState.get(entity);
+    if (state) {
+      state.lastPlayerPosition = state.target; // Store previous position
+      state.target = new Vector2D(playerPosition.x, playerPosition.y);
+    }
+  }
+  
+  private updateAI(entity: BaseEntity, state: ChasingBehaviorState, deltaTime: number, world: DesertWorld): void {
     if (state.state === 'destroyed') return;
     
     const config = entity.entityDefinition;
@@ -92,20 +82,20 @@ export class EscapingBehavior implements EntityBehavior {
     
     if (avoidanceDirection) {
       // There's an obstacle or bad terrain ahead - steer away but less dramatically
-      const escapeDirection = state.escapeTarget.subtract(entity.position).normalize();
+      const chaseDirection = state.target.subtract(entity.position).normalize();
       
-      // Reduced avoidance strength for smoother behavior (75% avoidance, 25% escape)
-      targetDirection = avoidanceDirection.multiply(0.75).add(escapeDirection.multiply(0.25)).normalize();
+      // Reduced avoidance strength for smoother behavior (75% avoidance, 25% chase)
+      targetDirection = avoidanceDirection.multiply(0.75).add(chaseDirection.multiply(0.25)).normalize();
     } else {
-      // No obstacle - head toward escape target with some wandering
-      const escapeDirection = state.escapeTarget.subtract(entity.position).normalize();
+      // No obstacle - head toward player with some wandering
+      const chaseDirection = state.target.subtract(entity.position).normalize();
       
-      // Add wandering for natural movement
+      // Add wandering for natural movement (less than bandits for more focused pursuit)
       state.wanderAngle += (Math.random() - 0.5) * config.wanderStrength * deltaTime;
       const wanderDirection = new Vector2D(Math.cos(state.wanderAngle), Math.sin(state.wanderAngle));
       
-      // Blend escape direction with wandering (85% escape, 15% wander)
-      targetDirection = escapeDirection.multiply(0.85).add(wanderDirection.multiply(0.15)).normalize();
+      // Blend chase direction with wandering (90% chase, 10% wander)
+      targetDirection = chaseDirection.multiply(0.9).add(wanderDirection.multiply(0.1)).normalize();
     }
     
     // Calculate desired angle
@@ -121,7 +111,7 @@ export class EscapingBehavior implements EntityBehavior {
     // Turn toward target - Moderate speed increase when avoiding obstacles
     let turnSpeed = config.turnSpeed;
     if (avoidanceDirection) {
-      turnSpeed *= 1.5; // Turn 50% faster when avoiding obstacles (reduced from 2x)
+      turnSpeed *= 1.5; // Turn 50% faster when avoiding obstacles
     }
     
     const maxTurnThisFrame = turnSpeed * deltaTime;
@@ -168,10 +158,10 @@ export class EscapingBehavior implements EntityBehavior {
     if (!state) return {};
     
     return {
+      behavior: 'chasing',
+      target: `(${state.target.x.toFixed(0)}, ${state.target.y.toFixed(0)})`,
       state: state.state,
-      distanceToEscape: entity.position.subtract(state.escapeTarget).length().toFixed(0),
-      escapeTarget: state.escapeTarget,
-      position: entity.position
+      distanceToTarget: entity.position.subtract(state.target).length().toFixed(0) + 'px'
     };
   }
 }

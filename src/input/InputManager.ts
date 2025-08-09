@@ -72,4 +72,9 @@ export class InputManager {
     isDebugTogglePressed(): boolean {
         return this.isKeyJustPressed('KeyD');
     }
+    
+    // Hunter spawn input for testing
+    isHunterSpawnPressed(): boolean {
+        return this.isKeyJustPressed('KeyH');
+    }
 }

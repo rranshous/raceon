@@ -319,4 +319,44 @@ export class EnemyManager {
     
     return enemy;
   }
+  
+  /**
+   * Spawn a hunter motorcycle near the player for testing
+   */
+  spawnHunterNearPlayer(playerPosition: Vector2D): BaseEntity | null {
+    const entityDef = EntityRegistry.get('hunter_motorcycle');
+    if (!entityDef) {
+      console.error('Hunter motorcycle entity type not found');
+      return null;
+    }
+    
+    // Spawn hunter at configured distance from player
+    const spawnDistance = entityDef.spawnDistanceMin || 400;
+    const spawnAngle = Math.random() * Math.PI * 2;
+    const spawnPosition = new Vector2D(
+      playerPosition.x + Math.cos(spawnAngle) * spawnDistance,
+      playerPosition.y + Math.sin(spawnAngle) * spawnDistance
+    );
+    
+    // For hunters, we don't need an escape target since they chase the player
+    const dummyTarget = new Vector2D(playerPosition.x, playerPosition.y);
+    const hunter = EntityFactory.create('hunter_motorcycle', spawnPosition, dummyTarget);
+    
+    if (hunter) {
+      // Set up hunter sprite (for now, use motorcycle sprite from assets)
+      const manager = this.enemyTypes.get('hunter_motorcycle');
+      if (manager && manager.sprite) {
+        hunter.setSprite(manager.sprite);
+      }
+      
+      // Add to hunters list
+      if (manager) {
+        manager.enemies.push(hunter);
+      }
+      
+      console.log(`🏍️ Hunter spawned at distance ${spawnDistance} from player`);
+    }
+    
+    return hunter;
+  }
 }

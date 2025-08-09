@@ -75,6 +75,38 @@ export const GAME_CONFIG = {
       MAX_ACTIVE: 4,        // Maximum bandits alive at once
       SPAWN_DISTANCE_MIN: 30,  // Min pixels from water source
       SPAWN_DISTANCE_MAX: 50   // Max pixels from water source
+    },
+    
+    HUNTER_MOTORCYCLE: {
+      MAX_SPEED: 180,           // Faster than bandits (150)
+      ACCELERATION: 250,        // Quick acceleration for pursuit
+      FRICTION: 80,
+      TURN_SPEED: 2.5,         // Agile turning
+      
+      // Physical dimensions
+      WIDTH: 20,
+      HEIGHT: 12,
+      COLLISION_RADIUS_MULTIPLIER: 0.33,
+      
+      // AI behavior (similar to bandit but will use different behavior)
+      STUCK_DETECTION_TIME: 3.0,
+      AVOIDANCE_DURATION: 8.0,
+      AVOIDANCE_COOLDOWN: 5.0,
+      WANDER_STRENGTH: 0.3,              // Less wandering, more focused pursuit
+      STUCK_MOVEMENT_THRESHOLD: 0.3,
+      STUCK_TIMER_DECAY: 3.0,
+      MIN_MOVEMENT_SPEED: 20,
+      
+      // Predictive obstacle avoidance
+      LOOKAHEAD_DISTANCE: 80,
+      AVOIDANCE_TURN_STRENGTH: 2.5,
+      OBSTACLE_BUFFER_DISTANCE: 20,
+      AVOIDANCE_SMOOTHING: 0.7,
+      
+      // Hunter-specific spawning
+      SPAWN_TRIGGER_KILLS: 3,   // Spawn after 3 bandit kills
+      MAX_ACTIVE: 1,           // Start with 1 hunter
+      SPAWN_DISTANCE: 400      // Spawn 400px from player
     }
     
     // Future enemy types can be added here

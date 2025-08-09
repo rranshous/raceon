@@ -13,7 +13,7 @@ import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
 import { GameEvents } from '../events/GameEvents';
-import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, EnemyWaterCollisionEvent, PlayerRockCollisionEvent, EnemyRockCollisionEvent, DebugModeToggledEvent, EntityMovedEvent, SpeedThresholdReachedEvent } from '../events/EventTypes';
+import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, PlayerRockCollisionEvent, DebugModeToggledEvent, EntityMovedEvent, SpeedThresholdReachedEvent } from '../events/EventTypes';
 import { GAME_CONFIG } from '../config/GameConfig';
 
 export class Game {
@@ -33,6 +33,7 @@ export class Game {
     private lastTime: number = 0;
     private isRunning: boolean = false;
     private assetsLoaded: boolean = false;
+    private banditKills: number = 0; // Track bandit eliminations for hunter spawning
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -103,10 +104,9 @@ export class Game {
         });
         
         // Listen for enemy water collisions (separate from player)
-        GameEvents.on(EVENT_TYPES.ENEMY_WATER_COLLISION, (event: EnemyWaterCollisionEvent) => {
+        GameEvents.on(EVENT_TYPES.ENEMY_WATER_COLLISION, () => {
             // Different effects for enemies hitting water
             // Could trigger AI behavior changes, different particles, etc.
-            console.log(`🤖 Enemy ${event.enemy.constructor.name} hit water! Could change AI behavior, create smaller splash, etc.`);
         });
         
         // Listen for player rock collisions
@@ -119,10 +119,9 @@ export class Game {
         });
         
         // Listen for enemy rock collisions (separate from player)
-        GameEvents.on(EVENT_TYPES.ENEMY_ROCK_COLLISION, (event: EnemyRockCollisionEvent) => {
+        GameEvents.on(EVENT_TYPES.ENEMY_ROCK_COLLISION, () => {
             // Different effects for enemies hitting rocks
             // Could trigger different AI responses, less dramatic effects
-            console.log(`🤖 Enemy ${event.enemy.constructor.name} hit rock! Could change AI pathfinding, create dust, etc.`);
         });
         
         // Listen for debug mode toggle events
@@ -146,8 +145,6 @@ export class Game {
             // Create dust particles for fast-moving entities
             const particleCount = event.entityType === 'player' ? 2 : 1;
             this.particleSystem.createDustParticles(event.dustPosition, event.velocity, particleCount);
-            
-            console.log(`💨 ${event.entityType} reached speed threshold ${event.threshold} at ${event.speed.toFixed(1)} speed`);
         });
     }
 
@@ -167,6 +164,13 @@ export class Game {
             if (blueCarImage) {
                 const banditSprite = new CarSprite(blueCarImage);
                 this.enemyManager.setEnemySprite('water_bandit', banditSprite);
+            }
+            
+            // Set up red car sprite for hunters (temporary - will use motorcycle later)
+            const redCarImage = this.assetManager.getImage('car_red');
+            if (redCarImage) {
+                const hunterSprite = new CarSprite(redCarImage);
+                this.enemyManager.setEnemySprite('hunter_motorcycle', hunterSprite);
             }
             
             // Set up desert world sprites
@@ -231,6 +235,11 @@ export class Game {
             } as DebugModeToggledEvent);
         }
         
+        // Handle hunter spawn for testing
+        if (this.inputManager.isHunterSpawnPressed()) {
+            this.enemyManager.spawnHunterNearPlayer(this.vehicle.position);
+        }
+        
         // Update vehicle
         this.vehicle.update(deltaTime, this.inputManager, this.desertWorld);
         
@@ -240,6 +249,9 @@ export class Game {
                 // Update game entities
         this.enemyManager.update(deltaTime);
         
+        // Update hunter targets to player position
+        this.updateHunterTargets();
+        
         // Vehicle radius for all collision checks
         const vehicleRadius = 12;
         
@@ -248,6 +260,10 @@ export class Game {
         for (const enemy of collidedEnemies) {
             // Destroy the enemy - effects will be triggered via events
             this.enemyManager.destroyEnemy(enemy);
+            
+            // Track bandit kills for hunter spawning system
+            this.banditKills++;
+            console.log(`🎯 Bandit kills: ${this.banditKills}`);
         }
         
         // Emit entity movement events
@@ -379,8 +395,27 @@ export class Game {
         this.ctx.font = '16px Arial';
         this.ctx.textAlign = 'left';
         
-        // Only show useful gameplay info
-        const banditStats = this.enemyManager.getStats();
-        this.ctx.fillText(`Water Bandits: ${banditStats.active} active`, 10, 30);
+        // Show separate counts for bandits and hunters
+        const banditCount = this.enemyManager.getActiveEnemies('water_bandit').length;
+        const hunterCount = this.enemyManager.getActiveEnemies('hunter_motorcycle').length;
+        
+        this.ctx.fillText(`Water Bandits: ${banditCount} active`, 10, 30);
+        this.ctx.fillText(`Hunters: ${hunterCount} active`, 10, 50);
+        this.ctx.fillText(`Bandit Kills: ${this.banditKills}`, 10, 70);
+    }
+    
+    /**
+     * Update all hunter targets to player position for chasing behavior
+     */
+    private updateHunterTargets(): void {
+        const hunters = this.enemyManager.getActiveEnemies('hunter_motorcycle');
+        for (const hunter of hunters) {
+            // Update chasing behavior target to player position
+            // Cast to WaterBanditEntity to access behavior property
+            const hunterEntity = hunter as any;
+            if (hunterEntity.behavior && typeof hunterEntity.behavior.setTarget === 'function') {
+                hunterEntity.behavior.setTarget(hunter, this.vehicle.position);
+            }
+        }
     }
 }
