@@ -7,7 +7,7 @@ export interface TireTrack {
     life: number;
     maxLife: number;
     width: number;
-    vehicleType: 'player' | 'bandit';
+    vehicleType: 'player' | 'bandit' | 'hunter';
 }
 
 export class TireTrackSystem {
@@ -19,7 +19,7 @@ export class TireTrackSystem {
     constructor() {}
     
     // Add tire tracks for a vehicle
-    addTracks(vehicleId: string, position: Vector2D, angle: number, speed: number, vehicleType: 'player' | 'bandit'): void {
+    addTracks(vehicleId: string, position: Vector2D, angle: number, speed: number, vehicleType: 'player' | 'bandit' | 'hunter'): void {
         // Only create tracks if vehicle is moving fast enough
         if (speed < GAME_CONFIG.EFFECTS.TIRE_TRACKS.SPEED_THRESHOLD) return;
         
@@ -54,7 +54,7 @@ export class TireTrackSystem {
         this.lastTrackPositions.set(vehicleId, new Vector2D(position.x, position.y));
     }
     
-    private createTrack(position: Vector2D, angle: number, speed: number, vehicleType: 'player' | 'bandit'): void {
+    private createTrack(position: Vector2D, angle: number, speed: number, vehicleType: 'player' | 'bandit' | 'hunter'): void {
         // Remove oldest tracks if we're at the limit
         if (this.tracks.length >= this.maxTracks) {
             this.tracks.shift();
@@ -111,9 +111,11 @@ export class TireTrackSystem {
             
             // Different colors for different vehicle types
             if (track.vehicleType === 'player') {
-                ctx.strokeStyle = `rgba(80, 60, 40, ${alpha * 0.6})`;
+                ctx.strokeStyle = `rgba(80, 60, 40, ${alpha * 0.6})`; // Brown for player
+            } else if (track.vehicleType === 'hunter') {
+                ctx.strokeStyle = `rgba(120, 40, 40, ${alpha * 0.5})`; // Red for hunters
             } else {
-                ctx.strokeStyle = `rgba(60, 80, 120, ${alpha * 0.4})`; // Slightly blue for bandits
+                ctx.strokeStyle = `rgba(60, 80, 120, ${alpha * 0.4})`; // Blue for bandits
             }
             
             ctx.lineWidth = track.width;

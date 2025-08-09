@@ -80,22 +80,33 @@ export class ChasingBehavior implements EntityBehavior {
     
     let targetDirection: Vector2D;
     
-    if (avoidanceDirection) {
-      // There's an obstacle or bad terrain ahead - steer away but less dramatically
+    // Calculate distance to player for aggression scaling
+    const distanceToPlayer = entity.position.subtract(state.target).length();
+    const closeRange = 80; // Within 80 pixels = aggressive mode
+    
+    if (avoidanceDirection && distanceToPlayer > closeRange) {
+      // Far from player: Normal obstacle avoidance
       const chaseDirection = state.target.subtract(entity.position).normalize();
-      
-      // Reduced avoidance strength for smoother behavior (75% avoidance, 25% chase)
       targetDirection = avoidanceDirection.multiply(0.75).add(chaseDirection.multiply(0.25)).normalize();
+    } else if (avoidanceDirection && distanceToPlayer <= closeRange) {
+      // Close to player: Much more aggressive, ignore minor obstacles
+      const chaseDirection = state.target.subtract(entity.position).normalize();
+      targetDirection = avoidanceDirection.multiply(0.3).add(chaseDirection.multiply(0.7)).normalize();
     } else {
-      // No obstacle - head toward player with some wandering
+      // No obstacle - head toward player with different wandering based on distance
       const chaseDirection = state.target.subtract(entity.position).normalize();
       
-      // Add wandering for natural movement (less than bandits for more focused pursuit)
-      state.wanderAngle += (Math.random() - 0.5) * config.wanderStrength * deltaTime;
-      const wanderDirection = new Vector2D(Math.cos(state.wanderAngle), Math.sin(state.wanderAngle));
-      
-      // Blend chase direction with wandering (90% chase, 10% wander)
-      targetDirection = chaseDirection.multiply(0.9).add(wanderDirection.multiply(0.1)).normalize();
+      if (distanceToPlayer <= closeRange) {
+        // Close range: Minimal wandering, pure pursuit
+        state.wanderAngle += (Math.random() - 0.5) * config.wanderStrength * 0.2 * deltaTime; // Much less wandering
+        const wanderDirection = new Vector2D(Math.cos(state.wanderAngle), Math.sin(state.wanderAngle));
+        targetDirection = chaseDirection.multiply(0.95).add(wanderDirection.multiply(0.05)).normalize(); // 95% chase, 5% wander
+      } else {
+        // Far range: Normal wandering
+        state.wanderAngle += (Math.random() - 0.5) * config.wanderStrength * deltaTime;
+        const wanderDirection = new Vector2D(Math.cos(state.wanderAngle), Math.sin(state.wanderAngle));
+        targetDirection = chaseDirection.multiply(0.9).add(wanderDirection.multiply(0.1)).normalize(); // 90% chase, 10% wander
+      }
     }
     
     // Calculate desired angle

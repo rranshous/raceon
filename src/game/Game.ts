@@ -136,7 +136,12 @@ export class Game {
         // Listen for entity movement events to trigger tire tracks
         GameEvents.on(EVENT_TYPES.ENTITY_MOVED, (event: EntityMovedEvent) => {
             // Add tire tracks for all moving entities
-            const vehicleType = event.entityType === 'player' ? 'player' : 'bandit';
+            let vehicleType = 'bandit'; // default
+            if (event.entityType === 'player') {
+                vehicleType = 'player';
+            } else if (event.entityId.startsWith('hunter_')) {
+                vehicleType = 'hunter'; // Different track color for hunters
+            }
             this.tireTrackSystem.addTracks(event.entityId, event.position, event.angle, event.speed, vehicleType);
         });
         
@@ -255,15 +260,22 @@ export class Game {
         // Vehicle radius for all collision checks
         const vehicleRadius = 12;
         
-        // Check collision between player and enemies
+        // Check collision between player and enemies with directional detection
         const collidedEnemies = this.enemyManager.checkPlayerCollisions(this.vehicle.position, vehicleRadius);
         for (const enemy of collidedEnemies) {
-            // Destroy the enemy - effects will be triggered via events
-            this.enemyManager.destroyEnemy(enemy);
+            // Determine collision direction based on vehicle fronts
+            const playerKillsEnemy = this.determineCollisionWinner(this.vehicle, enemy);
             
-            // Track bandit kills for hunter spawning system
-            this.banditKills++;
-            console.log(`🎯 Bandit kills: ${this.banditKills}`);
+            if (playerKillsEnemy) {
+                // Player's front hit enemy - destroy enemy
+                this.enemyManager.destroyEnemy(enemy);
+                this.banditKills++;
+                console.log(`🎯 Enemy destroyed! Total kills: ${this.banditKills}`);
+            } else {
+                // Enemy's front hit player - player dies
+                this.handlePlayerDeath();
+                return; // Exit update loop since game is resetting
+            }
         }
         
         // Emit entity movement events
@@ -293,12 +305,12 @@ export class Game {
             } as SpeedThresholdReachedEvent);
         }
         
-        // Emit movement events for enemies
-        const activeEnemies = this.enemyManager.getActiveEnemies('water_bandit');
-        activeEnemies.forEach((enemy, index) => {
+        // Emit movement events for enemies (bandits and hunters)
+        const activeBandits = this.enemyManager.getActiveEnemies('water_bandit');
+        activeBandits.forEach((enemy, index) => {
             // Emit entity movement event
             GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
-                entityId: `enemy_${index}`,
+                entityId: `bandit_${index}`,
                 entityType: 'enemy',
                 position: enemy.position,
                 angle: enemy.angle,
@@ -312,12 +324,43 @@ export class Game {
                 const dustPosition = enemy.position.add(backOffset);
                 
                 GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
-                    entityId: `enemy_${index}`,
+                    entityId: `bandit_${index}`,
                     entityType: 'enemy',
                     position: enemy.position,
                     angle: enemy.angle,
                     speed: enemy.speed,
                     velocity: enemy.velocity,
+                    threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
+                    dustPosition: dustPosition
+                } as SpeedThresholdReachedEvent);
+            }
+        });
+        
+        // Emit movement events for hunters
+        const activeHunters = this.enemyManager.getActiveEnemies('hunter_motorcycle');
+        activeHunters.forEach((hunter, index) => {
+            // Emit entity movement event
+            GameEvents.emit(EVENT_TYPES.ENTITY_MOVED, {
+                entityId: `hunter_${index}`,
+                entityType: 'enemy', // Use 'enemy' type but with hunter prefix for track differentiation
+                position: hunter.position,
+                angle: hunter.angle,
+                speed: hunter.speed,
+                velocity: hunter.velocity
+            } as EntityMovedEvent);
+            
+            // Emit speed threshold event for hunters moving fast
+            if (hunter.speed > GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD) {
+                const backOffset = new Vector2D(-Math.cos(hunter.angle), -Math.sin(hunter.angle)).multiply(12);
+                const dustPosition = hunter.position.add(backOffset);
+                
+                GameEvents.emit(EVENT_TYPES.SPEED_THRESHOLD_REACHED, {
+                    entityId: `hunter_${index}`,
+                    entityType: 'enemy',
+                    position: hunter.position,
+                    angle: hunter.angle,
+                    speed: hunter.speed,
+                    velocity: hunter.velocity,
                     threshold: GAME_CONFIG.EFFECTS.PARTICLES.DUST_SPEED_THRESHOLD,
                     dustPosition: dustPosition
                 } as SpeedThresholdReachedEvent);
@@ -417,5 +460,58 @@ export class Game {
                 hunterEntity.behavior.setTarget(hunter, this.vehicle.position);
             }
         }
+    }
+    
+    /**
+     * Determine collision winner based on vehicle front positions
+     * Returns true if player kills enemy, false if enemy kills player
+     */
+    private determineCollisionWinner(player: any, enemy: any): boolean {
+        // Calculate front positions based on vehicle angles
+        const playerFrontOffset = 15; // Distance from center to front
+        const enemyFrontOffset = 15;
+        
+        const playerFront = new Vector2D(
+            player.position.x + Math.cos(player.angle) * playerFrontOffset,
+            player.position.y + Math.sin(player.angle) * playerFrontOffset
+        );
+        
+        const enemyFront = new Vector2D(
+            enemy.position.x + Math.cos(enemy.angle) * enemyFrontOffset,
+            enemy.position.y + Math.sin(enemy.angle) * enemyFrontOffset
+        );
+        
+        // Check if player's front is closer to enemy center than enemy's front is to player center
+        const playerFrontToEnemyDistance = playerFront.subtract(enemy.position).length();
+        const enemyFrontToPlayerDistance = enemyFront.subtract(player.position).length();
+        
+        // Player wins if their front is significantly closer (more aggressive collision)
+        return playerFrontToEnemyDistance < enemyFrontToPlayerDistance - 5; // 5px tolerance
+    }
+    
+    /**
+     * Handle player death - reset game state
+     */
+    private handlePlayerDeath(): void {
+        console.log('💀 GAME OVER! You were destroyed by an enemy!');
+        
+        // Reset player position to center
+        this.vehicle.position = new Vector2D(
+            this.desertWorld.worldWidth / 2,
+            this.desertWorld.worldHeight / 2
+        );
+        this.vehicle.velocity = new Vector2D(0, 0);
+        this.vehicle.speed = 0;
+        this.vehicle.angle = 0;
+        
+        // Reset kill counter
+        this.banditKills = 0;
+        
+        // Keep hunters active - they continue hunting after player respawn
+        
+        // Trigger screen shake for dramatic effect
+        this.screenShake.shake(1.5, 0.5); // Strong shake for death
+        
+        console.log('🔄 Game reset! Try to survive longer this time!');
     }
 }

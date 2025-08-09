@@ -135,7 +135,7 @@ export const GAME_CONFIG = {
     },
     
     TIRE_TRACKS: {
-      MAX_COUNT: 500,
+      MAX_COUNT: 800,       // Increased for more vehicles (player + bandits + hunters)
       SPEED_THRESHOLD: 30,  // Speed needed to leave tracks
       ALPHA_DECAY: 0.02,    // How fast tracks fade
       SEGMENT_DISTANCE: 10  // Distance between track segments
