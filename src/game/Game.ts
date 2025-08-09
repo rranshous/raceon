@@ -12,6 +12,8 @@ import { ParticleSystem } from '../effects/ParticleSystem';
 import { TireTrackSystem } from '../effects/TireTrackSystem';
 import { Vector2D } from '../utils/Vector2D';
 import { initializeEntitySystem } from '../entities/EntitySystemInit';
+import { EntityTypeRegistry } from '../entities/EntityTypeRegistry';
+import { CollisionSystem } from '../systems/CollisionSystem';
 import { GameEvents } from '../events/GameEvents';
 import { EVENT_TYPES, EnemyDestroyedEvent, PlayerWaterCollisionEvent, PlayerRockCollisionEvent, DebugModeToggledEvent, EntityMovedEvent, SpeedThresholdReachedEvent } from '../events/EventTypes';
 import { GAME_CONFIG } from '../config/GameConfig';
@@ -45,6 +47,9 @@ export class Game {
         
         // Initialize entity system
         initializeEntitySystem();
+        
+        // Initialize entity type registry
+        EntityTypeRegistry.initialize();
         
         this.inputManager = new InputManager();
         this.desertWorld = new DesertWorld();
@@ -135,13 +140,20 @@ export class Game {
         
         // Listen for entity movement events to trigger tire tracks
         GameEvents.on(EVENT_TYPES.ENTITY_MOVED, (event: EntityMovedEvent) => {
-            // Add tire tracks for all moving entities
+            // Determine vehicle type from entity ID using registry
             let vehicleType: 'player' | 'bandit' | 'hunter' = 'bandit'; // default
+            
             if (event.entityType === 'player') {
                 vehicleType = 'player';
-            } else if (event.entityId.startsWith('hunter_')) {
-                vehicleType = 'hunter'; // Different track color for hunters
+            } else {
+                // Check registry to determine vehicle type for enemies
+                const entityId = event.entityId.split('_')[0]; // Extract base entity type
+                const config = EntityTypeRegistry.get(entityId) || EntityTypeRegistry.get(`${entityId}_${event.entityId.split('_')[1]}`);
+                if (config) {
+                    vehicleType = config.vehicleType;
+                }
             }
+            
             this.tireTrackSystem.addTracks(event.entityId, event.position, event.angle, event.speed, vehicleType);
         });
         
@@ -173,24 +185,20 @@ export class Game {
     }
     
     /**
-     * Set up sprites for all entities - DRY asset loading
+     * Set up sprites for all entities - DRY asset loading using registry
      */
     private setupEntitySprites(): void {
-        // Entity sprite configurations
-        const spriteConfigs = [
-            { entityId: 'player', imageName: 'car_yellow', target: this.vehicle },
-            { entityId: 'water_bandit', imageName: 'car_blue', target: this.enemyManager },
-            { entityId: 'hunter_motorcycle', imageName: 'car_red', target: this.enemyManager }
-        ];
+        // Get all entity type configurations from registry
+        const entityConfigs = EntityTypeRegistry.getAll();
         
-        spriteConfigs.forEach(config => {
-            const image = this.assetManager.getImage(config.imageName);
+        entityConfigs.forEach(config => {
+            const image = this.assetManager.getImage(config.spriteImageName);
             if (image) {
                 const sprite = new CarSprite(image);
-                if (config.entityId === 'player') {
+                if (config.isPlayerControlled) {
                     this.vehicle.setSprite(sprite);
                 } else {
-                    this.enemyManager.setEnemySprite(config.entityId, sprite);
+                    this.enemyManager.setEnemySprite(config.id, sprite);
                 }
             }
         });
@@ -277,8 +285,8 @@ export class Game {
         // Check collision between player and enemies with directional detection
         const collidedEnemies = this.enemyManager.checkPlayerCollisions(this.vehicle.position, vehicleRadius);
         for (const enemy of collidedEnemies) {
-            // Determine collision direction based on vehicle fronts
-            const playerKillsEnemy = this.determineCollisionWinner(this.vehicle, enemy);
+            // Determine collision direction using CollisionSystem
+            const playerKillsEnemy = CollisionSystem.determineCollisionWinner(this.vehicle, enemy);
             
             if (playerKillsEnemy) {
                 // Player's front hit enemy - destroy enemy
@@ -385,12 +393,7 @@ export class Game {
      * Get user-friendly display name for entity types
      */
     private getEntityDisplayName(entityType: string): string {
-        const displayNames: Record<string, string> = {
-            'water_bandit': 'Water Bandits',
-            'hunter_motorcycle': 'Hunters',
-            'raider': 'Raiders'
-        };
-        return displayNames[entityType] || entityType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return EntityTypeRegistry.getDisplayName(entityType);
     }
     
     /**
@@ -406,33 +409,6 @@ export class Game {
                 hunterEntity.behavior.setTarget(hunter, this.vehicle.position);
             }
         }
-    }
-    
-    /**
-     * Determine collision winner based on vehicle front positions
-     * Returns true if player kills enemy, false if enemy kills player
-     */
-    private determineCollisionWinner(player: any, enemy: any): boolean {
-        // Calculate front positions based on vehicle angles
-        const playerFrontOffset = 15; // Distance from center to front
-        const enemyFrontOffset = 15;
-        
-        const playerFront = new Vector2D(
-            player.position.x + Math.cos(player.angle) * playerFrontOffset,
-            player.position.y + Math.sin(player.angle) * playerFrontOffset
-        );
-        
-        const enemyFront = new Vector2D(
-            enemy.position.x + Math.cos(enemy.angle) * enemyFrontOffset,
-            enemy.position.y + Math.sin(enemy.angle) * enemyFrontOffset
-        );
-        
-        // Check if player's front is closer to enemy center than enemy's front is to player center
-        const playerFrontToEnemyDistance = playerFront.subtract(enemy.position).length();
-        const enemyFrontToPlayerDistance = enemyFront.subtract(player.position).length();
-        
-        // Player wins if their front is significantly closer (more aggressive collision)
-        return playerFrontToEnemyDistance < enemyFrontToPlayerDistance - 5; // 5px tolerance
     }
     
     /**
@@ -462,37 +438,31 @@ export class Game {
     }
     
     /**
-     * Unified entity movement event emission - DRY principle
+     * Unified entity movement event emission - registry-driven approach
      */
     private emitEntityMovementEvents(): void {
-        // Emit player movement events
-        this.emitMovementEventsForEntity(
-            this.vehicle, 
-            'player', 
-            'player', 
-            15 // backOffset multiplier
-        );
-        
-        // Emit bandit movement events  
-        const activeBandits = this.enemyManager.getActiveEnemies('water_bandit');
-        activeBandits.forEach((bandit, index) => {
+        // Player movement events  
+        const playerConfig = EntityTypeRegistry.get('player');
+        if (playerConfig) {
             this.emitMovementEventsForEntity(
-                bandit, 
-                `bandit_${index}`, 
-                'enemy', 
-                12 // backOffset multiplier
+                this.vehicle, 
+                'player', 
+                'player', 
+                playerConfig.dustBackOffsetMultiplier
             );
-        });
+        }
         
-        // Emit hunter movement events
-        const activeHunters = this.enemyManager.getActiveEnemies('hunter_motorcycle');
-        activeHunters.forEach((hunter, index) => {
-            this.emitMovementEventsForEntity(
-                hunter, 
-                `hunter_${index}`, 
-                'enemy', 
-                12 // backOffset multiplier
-            );
+        // Enemy movement events - iterate through all enemy types
+        EntityTypeRegistry.getEnemyTypes().forEach(config => {
+            const activeEnemies = this.enemyManager.getActiveEnemies(config.id);
+            activeEnemies.forEach((enemy, index) => {
+                this.emitMovementEventsForEntity(
+                    enemy, 
+                    `${config.id}_${index}`, 
+                    'enemy', 
+                    config.dustBackOffsetMultiplier
+                );
+            });
         });
     }
     
